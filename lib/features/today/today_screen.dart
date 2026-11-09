@@ -12,8 +12,15 @@ import '../shared/expense_list.dart';
 import '../shared/quick_entry_card.dart';
 
 /// Ana ekran: bugünün toplamı, "Ne harcadın?" satırı ve bugün eklenenler.
-class TodayScreen extends StatelessWidget {
+class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
+
+  @override
+  State<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends State<TodayScreen> {
+  bool _listOpen = true;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +36,7 @@ class TodayScreen extends StatelessWidget {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: EdgeInsets.fromLTRB(
               AppDimens.gutter,
-              24,
+              44,
               AppDimens.gutter,
               MainShell.bottomInset(context),
             ),
@@ -49,11 +56,28 @@ class TodayScreen extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const AddPastScreen()),
                 ),
               ),
-              const SectionTitle('Eklenenler'),
-              ExpenseList(
-                expenses: state.todayExpenses,
-                emptyText: 'İlk harcamanı yaz, örneğin: kahve 85',
+              SectionTitle(
+                'Eklenenler',
+                trailing: IconButton(
+                  key: const Key('toggleAdded'),
+                  tooltip: _listOpen ? 'Eklenenleri kapat' : 'Eklenenleri aç',
+                  onPressed: () => setState(() => _listOpen = !_listOpen),
+                  color: AppColors.green,
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    _listOpen
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 26,
+                  ),
+                ),
               ),
+              if (_listOpen)
+                ExpenseList(
+                  expenses: state.todayExpenses,
+                  emptyText: 'İlk harcamanı yaz, örneğin: kahve 85',
+                  showEditIcon: true,
+                ),
             ],
           ),
         ),

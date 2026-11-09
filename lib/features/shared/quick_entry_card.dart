@@ -8,6 +8,7 @@ import '../../core/models/expense.dart';
 import '../../core/utils/expense_parser.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/common.dart';
+import 'favorite_sheet.dart';
 
 /// Tek satırlık giriş: "taksi 250" yaz, Ekle'ye bas. Altında sık yazılan
 /// harcamalar tek dokunuşla eklenecek çipler olarak durur.
@@ -80,9 +81,37 @@ class _QuickEntryCardState extends State<QuickEntryCard> {
       );
   }
 
+  Future<void> _openFavoriteSheet() async {
+    final saved = await showFavoriteSheet(context);
+    if (saved == null || !mounted) return;
+    showAppSnackBar(
+      context,
+      '${saved.name} sık kullanılanlarda. Çıkarmak için çipe basılı tut.',
+    );
+  }
+
+  Future<void> _removeFavorite(ParsedExpense item) async {
+    final state = AppScope.read(context).state;
+    final messenger = ScaffoldMessenger.of(context);
+    await state.removeFavorite(item);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('${item.name} sık kullanılanlardan çıkarıldı.'),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Geri al',
+            onPressed: () => state.addFavorite(item),
+          ),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final frequent = AppScope.of(context).state.frequent;
+    final state = AppScope.of(context).state;
+    final items = state.quickItems;
     return AppCard(
       radius: AppDimens.heroRadius,
       padding: const EdgeInsets.all(14),
@@ -131,20 +160,52 @@ class _QuickEntryCardState extends State<QuickEntryCard> {
                 style: AppText.small.copyWith(color: AppColors.danger),
               ),
             ),
-          if (frequent.isNotEmpty) ...[
-            const SizedBox(height: 12),
+          // "+" yalnızca ana sayfada; geçmiş güne eklemede başlık boşsa gizli.
+          if (items.isNotEmpty || widget.day == null) ...[
+            SizedBox(height: widget.day == null ? 8 : 12),
             Padding(
-              padding: const EdgeInsets.only(left: 6, bottom: 8),
-              child: Text('Sık yazılanlar', style: AppText.label),
+              padding: EdgeInsets.only(
+                left: 6,
+                bottom: widget.day == null ? 4 : 8,
+              ),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text('Sık kullanılanlar', style: AppText.label),
+                  ),
+                  if (widget.day == null)
+                    IconButton(
+                      key: const Key('favoriteOpen'),
+                      tooltip: 'Sık kullanılanlara ekle',
+                      onPressed: _openFavoriteSheet,
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.greenSoft,
+                        foregroundColor: AppColors.green,
+                        minimumSize: const Size(40, 40),
+                        maximumSize: const Size(40, 40),
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.add_rounded, size: 22),
+                    ),
+                ],
+              ),
             ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final item in frequent)
-                  _FrequentChip(item: item, onTap: () => _addFrequent(item)),
-              ],
-            ),
+            if (items.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final item in items)
+                    _FrequentChip(
+                      item: item,
+                      onTap: () => _addFrequent(item),
+                      onLongPress: state.isFavorite(item)
+                          ? () => _removeFavorite(item)
+                          : null,
+                    ),
+                ],
+              ),
           ],
         ],
       ),
@@ -153,10 +214,17 @@ class _QuickEntryCardState extends State<QuickEntryCard> {
 }
 
 class _FrequentChip extends StatelessWidget {
-  const _FrequentChip({required this.item, required this.onTap});
+  const _FrequentChip({
+    required this.item,
+    required this.onTap,
+    this.onLongPress,
+  });
 
   final ParsedExpense item;
   final VoidCallback onTap;
+
+  /// Yalnızca kullanıcının eklediği çiplerde: sık kullanılanlardan çıkarır.
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +232,10 @@ class _FrequentChip extends StatelessWidget {
     return Semantics(
       button: true,
       label: '${item.name} $amount ekle',
+      onLongPress: onLongPress,
+      onLongPressHint: onLongPress == null
+          ? null
+          : 'Sık kullanılanlardan çıkar',
       excludeSemantics: true,
       child: Material(
         color: AppColors.greenSoft,
@@ -171,6 +243,7 @@ class _FrequentChip extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
+          onLongPress: onLongPress,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 40),
             child: Padding(

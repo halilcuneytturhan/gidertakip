@@ -20,6 +20,7 @@ class AppState extends ChangeNotifier {
   DateTime _today = DateTime(2000);
   List<Expense> _todayExpenses = const [];
   List<ParsedExpense> _frequent = const [];
+  List<ParsedExpense> _favorites = const [];
   int _revision = 0;
 
   bool get isLoaded => _loaded;
@@ -35,7 +36,24 @@ class AppState extends ChangeNotifier {
   /// kutusunun altında tek dokunuşla eklenecek çipler olarak gösterilir.
   List<ParsedExpense> get frequent => List.unmodifiable(_frequent);
 
+  /// Kullanıcının kendi eklediği sık kullanılanlar.
+  List<ParsedExpense> get favorites => List.unmodifiable(_favorites);
+
+  bool isFavorite(ParsedExpense item) => _favorites.contains(item);
+
+  /// Çip olarak gösterilecekler: önce kullanıcının ekledikleri, kalan yer
+  /// (toplam [maxQuickItems] olana kadar) otomatik sık yazılanlarla dolar.
+  List<ParsedExpense> get quickItems {
+    final room = maxQuickItems - _favorites.length;
+    return [
+      ..._favorites,
+      if (room > 0)
+        ..._frequent.where((e) => !_favorites.contains(e)).take(room),
+    ];
+  }
+
   static const int frequentWindowDays = 60;
+  static const int maxQuickItems = 4;
 
   Future<void> load() async {
     await _reloadToday(notify: false);
@@ -104,8 +122,30 @@ class AppState extends ChangeNotifier {
     await _reloadToday();
   }
 
+  /// "Sigara 125" gibi bir satırı sık kullanılanlara ekler (harcama yazmaz).
+  /// Tutar bulunamazsa `null`.
+  Future<ParsedExpense?> addFavoriteFromText(String text) async {
+    final parsed = ExpenseParser.parse(text);
+    if (parsed == null) return null;
+    await addFavorite(parsed);
+    return parsed;
+  }
+
+  Future<void> addFavorite(ParsedExpense item) async {
+    await database.insertFavorite(item.name, item.amountKurus);
+    await _reloadToday();
+  }
+
+  Future<void> removeFavorite(ParsedExpense item) async {
+    await database.deleteFavorite(item.name, item.amountKurus);
+    await _reloadToday();
+  }
+
   Future<List<Expense>> expensesOn(DateTime day) =>
       database.expensesOn(Day.key(day));
+
+  /// Dışa aktarım için tüm kayıtlar, eskiden yeniye.
+  Future<List<Expense>> allExpenses() => database.all();
 
   /// Ayın gün → toplam (kuruş) haritası; harcama olmayan günler yoktur.
   Future<Map<int, int>> monthTotals(int year, int month) async {
@@ -116,6 +156,24 @@ class AppState extends ChangeNotifier {
       for (final entry in totals.entries)
         int.parse(entry.key.substring(8, 10)): entry.value,
     };
+  }
+
+  /// Ayda en çok harcanan adlar (en fazla 5); en yüksek toplam önce.
+  Future<List<({String name, int totalKurus, int count})>> monthTop(
+    int year,
+    int month,
+  ) async {
+    final first = DateTime(year, month, 1);
+    final last = DateTime(year, month, Day.daysInMonth(year, month));
+    final rows = await database.topByName(Day.key(first), Day.key(last));
+    return [
+      for (final r in rows)
+        (
+          name: r['name'] as String,
+          totalKurus: r['total'] as int,
+          count: r['uses'] as int,
+        ),
+    ];
   }
 
   /// Tüm kayıtlar CSV olarak (tarih;saat;ad;tutar). Excel'in Türkçe
@@ -148,6 +206,13 @@ class AppState extends ChangeNotifier {
     final rows = await database.frequent(sinceKey: Day.key(since));
     _frequent = [
       for (final r in rows)
+        ParsedExpense(
+          name: r['name'] as String,
+          amountKurus: r['amount_kurus'] as int,
+        ),
+    ];
+    _favorites = [
+      for (final r in await database.favorites())
         ParsedExpense(
           name: r['name'] as String,
           amountKurus: r['amount_kurus'] as int,

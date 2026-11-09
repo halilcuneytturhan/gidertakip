@@ -29,7 +29,7 @@ Verileri dilediğiniz zaman **Ayarlar → Tüm verileri sil** ile ya da Uygulama
 
 ## 4. Dışa aktarma
 
-**Ayarlar → Harcamaları dışa aktar (CSV)** seçeneğini kullandığınızda harcamalarınızdan bir dosya oluşturulur ve cihazınızın paylaşım menüsü açılır. Dosyanın nereye gönderileceğini (e-posta, bulut depolama, mesajlaşma uygulaması vb.) siz seçersiniz; bundan sonraki işleme seçtiğiniz uygulamanın veya hizmetin gizlilik politikasına tabidir. Bu dosya bize ulaşmaz.
+**Ayarlar → Harcamaları dışa aktar** seçeneğini kullandığınızda harcamalarınızdan bir dosya oluşturulur ve cihazınızın paylaşım menüsü açılır. Dosyanın nereye gönderileceğini (e-posta, bulut depolama, mesajlaşma uygulaması vb.) siz seçersiniz; bundan sonraki işleme seçtiğiniz uygulamanın veya hizmetin gizlilik politikasına tabidir. Bu dosya bize ulaşmaz.
 
 ## 5. İzinler
 

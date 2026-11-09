@@ -16,10 +16,14 @@ class ExpenseList extends StatefulWidget {
     required this.expenses,
     required this.emptyText,
     this.onChanged,
+    this.showEditIcon = false,
   });
 
   final List<Expense> expenses;
   final String emptyText;
+
+  /// Tutarın yanında kalem simgesi gösterir.
+  final bool showEditIcon;
 
   /// Silme / düzenleme / geri alma sonrası (geçmiş ekranı yeniden sorgular).
   final VoidCallback? onChanged;
@@ -60,6 +64,7 @@ class _ExpenseListState extends State<ExpenseList> {
               showDivider: i < _items.length - 1,
               onDismissed: () => setState(() => _items.removeAt(i)),
               onChanged: widget.onChanged,
+              showEditIcon: widget.showEditIcon,
             ),
         ],
       ),
@@ -74,12 +79,19 @@ class _ExpenseRow extends StatelessWidget {
     required this.showDivider,
     required this.onDismissed,
     this.onChanged,
+    this.showEditIcon = false,
   });
 
   final Expense expense;
   final bool showDivider;
   final VoidCallback onDismissed;
   final VoidCallback? onChanged;
+  final bool showEditIcon;
+
+  Future<void> _edit(BuildContext context) async {
+    final changed = await showExpenseEditSheet(context, expense);
+    if (changed) onChanged?.call();
+  }
 
   Future<void> _delete(BuildContext context) async {
     // Satır birazdan ağaçtan çıkacağı için bağlamdan okunacaklar önce alınır.
@@ -127,13 +139,15 @@ class _ExpenseRow extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () async {
-            final changed = await showExpenseEditSheet(context, expense);
-            if (changed) onChanged?.call();
-          },
+          onTap: () => _edit(context),
           child: Container(
             constraints: const BoxConstraints(minHeight: 56),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              showEditIcon ? 4 : 10,
+              showEditIcon ? 4 : 16,
+              showEditIcon ? 4 : 10,
+            ),
             decoration: BoxDecoration(
               border: showDivider
                   ? const Border(bottom: BorderSide(color: AppColors.divider))
@@ -156,6 +170,13 @@ class _ExpenseRow extends StatelessWidget {
                   Money.format(expense.amountKurus),
                   style: AppText.bodyStrong,
                 ),
+                if (showEditIcon)
+                  IconButton(
+                    tooltip: 'Düzenle',
+                    onPressed: () => _edit(context),
+                    color: AppColors.green,
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                  ),
               ],
             ),
           ),

@@ -106,10 +106,20 @@ void main() {
       await state.addFromText('taksi 250');
       await state.addFromText('cips 80');
       await state.addFromText('kahve 330');
+      await state.addFavoriteFromText('sigara 125');
     });
 
     await tester.pumpWidget(RepaintBoundary(child: EmuGiderApp(state: state)));
     await _shot(tester, '01_ozet');
+
+    await tester.tap(find.byKey(const Key('toggleAdded')));
+    await _shot(tester, '01b_ozet_kapali');
+    await tester.tap(find.byKey(const Key('favoriteOpen')));
+    await _shot(tester, '01c_sik_kullanilan_ekle');
+    await tester.tapAt(const Offset(195, 60));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('toggleAdded')));
+    await _settle(tester);
 
     await tester.tap(find.byKey(const Key('addPastDay')));
     await _shot(tester, '02_gecmis_gune_ekle');
@@ -122,8 +132,16 @@ void main() {
     await tester.tap(find.text('6'));
     await _shot(tester, '04_gecmis_gun');
 
+    await tester.drag(find.text('Kasım toplam'), const Offset(0, -900));
+    await _shot(tester, '04b_gecmis_en_cok');
+
     await tester.tap(find.text('Ayarlar').last);
     await _shot(tester, '05_ayarlar');
+
+    await tester.tap(find.text('Harcamaları dışa aktar'));
+    await _shot(tester, '05b_disa_aktar');
+    await tester.tapAt(const Offset(195, 60));
+    await _settle(tester);
 
     await tester.tap(find.text('Gizlilik Politikası'));
     await _shot(tester, '06_gizlilik');

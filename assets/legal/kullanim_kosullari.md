@@ -16,7 +16,7 @@ EmuGider, yazdığınız harcamaları kaydeden ve gün gün toplayan bir kişise
 ## 3. Verilerin sorumluluğu
 
 - Harcamalar yalnızca cihazınızda saklanır. Cihazınızın kaybolması, bozulması, sıfırlanması veya Uygulamanın kaldırılması durumunda kayıtlar kaybolabilir; bu verileri bizim kurtarma imkânımız yoktur.
-- Önemli kayıtlarınızı düzenli olarak **Ayarlar → Harcamaları dışa aktar (CSV)** ile yedeklemeniz önerilir.
+- Önemli kayıtlarınızı düzenli olarak **Ayarlar → Harcamaları dışa aktar** ile yedeklemeniz önerilir.
 - Girdiğiniz bilgilerin doğruluğundan siz sorumlusunuz.
 
 ## 4. Kullanım kuralları

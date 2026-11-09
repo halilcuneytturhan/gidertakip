@@ -9,9 +9,17 @@ class AppDatabase {
 
   final Database db;
 
-  /// 1: ilk sürüm.
-  static const int schemaVersion = 1;
+  /// 1: ilk sürüm. 2: kullanıcının eklediği sık kullanılanlar.
+  static const int schemaVersion = 2;
   static const String fileName = 'emugider.db';
+
+  static const String _createFavorites = '''
+    CREATE TABLE favorites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      amount_kurus INTEGER NOT NULL,
+      UNIQUE (name, amount_kurus)
+    )''';
 
   /// [factory] ve [path] testlerde bellek içi veritabanı için verilir.
   static Future<AppDatabase> open({
@@ -34,8 +42,12 @@ class AppDatabase {
                 day TEXT NOT NULL,
                 spent_at TEXT NOT NULL
               )''')
-            ..execute('CREATE INDEX idx_expenses_day ON expenses(day)');
+            ..execute('CREATE INDEX idx_expenses_day ON expenses(day)')
+            ..execute(_createFavorites);
           await batch.commit(noResult: true);
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) await db.execute(_createFavorites);
         },
       ),
     );
@@ -104,6 +116,40 @@ class AppDatabase {
     );
   }
 
+  /// [fromKey] ile [toKey] arasında ada göre toplamlar; en yüksek önce.
+  Future<List<Map<String, Object?>>> topByName(
+    String fromKey,
+    String toKey, {
+    int limit = 5,
+  }) {
+    return db.rawQuery(
+      'SELECT name, SUM(amount_kurus) AS total, COUNT(*) AS uses '
+      'FROM expenses WHERE day BETWEEN ? AND ? '
+      'GROUP BY name ORDER BY total DESC, name ASC LIMIT ?',
+      [fromKey, toKey, limit],
+    );
+  }
+
+  /// Kullanıcının eklediği sık kullanılanlar, eklenme sırasıyla.
+  Future<List<Map<String, Object?>>> favorites() =>
+      db.query('favorites', orderBy: 'id ASC');
+
+  /// Aynı ad + tutar zaten varsa bir şey yapmaz.
+  Future<void> insertFavorite(String name, int amountKurus) async {
+    await db.insert('favorites', {
+      'name': name,
+      'amount_kurus': amountKurus,
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  Future<void> deleteFavorite(String name, int amountKurus) async {
+    await db.delete(
+      'favorites',
+      where: 'name = ? AND amount_kurus = ?',
+      whereArgs: [name, amountKurus],
+    );
+  }
+
   /// Dışa aktarım için tüm kayıtlar, eskiden yeniye.
   Future<List<Expense>> all() async {
     final rows = await db.query('expenses', orderBy: 'spent_at ASC, id ASC');
@@ -111,7 +157,12 @@ class AppDatabase {
   }
 
   /// Ayarlar → Tüm verileri sil.
-  Future<void> wipe() => db.delete('expenses');
+  Future<void> wipe() async {
+    final batch = db.batch()
+      ..delete('expenses')
+      ..delete('favorites');
+    await batch.commit(noResult: true);
+  }
 
   Future<void> close() => db.close();
 }

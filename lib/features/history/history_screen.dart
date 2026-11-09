@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_scope.dart';
 import '../../app/app_state.dart';
 import '../../app/navigation/main_shell.dart';
+import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text.dart';
 import '../../core/models/expense.dart';
@@ -29,6 +30,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Map<int, int> _totals = const {};
   List<Expense> _dayExpenses = const [];
+  List<({String name, int totalKurus, int count})> _top = const [];
   int _request = 0;
 
   @override
@@ -49,10 +51,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final request = ++_request;
     final totals = await _state.monthTotals(_month.year, _month.month);
     final expenses = await _state.expensesOn(_selected);
+    final top = await _state.monthTop(_month.year, _month.month);
     if (!mounted || request != _request) return;
     setState(() {
       _totals = totals;
       _dayExpenses = expenses;
+      _top = top;
     });
   }
 
@@ -117,6 +121,48 @@ class _HistoryScreenState extends State<HistoryScreen> {
               emptyText: 'Bu güne harcama yazılmamış.',
               onChanged: _load,
             ),
+            if (_top.isNotEmpty) ...[
+              SectionTitle('${Day.months[_month.month - 1]} ayında en çok'),
+              AppCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < _top.length; i++)
+                      Container(
+                        constraints: const BoxConstraints(minHeight: 52),
+                        decoration: BoxDecoration(
+                          border: i < _top.length - 1
+                              ? const Border(
+                                  bottom: BorderSide(color: AppColors.divider),
+                                )
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _top[i].name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.subheading.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text('${_top[i].count} kez', style: AppText.small),
+                            const SizedBox(width: 12),
+                            Text(
+                              Money.format(_top[i].totalKurus),
+                              style: AppText.bodyStrong,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
