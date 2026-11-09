@@ -19,6 +19,7 @@ class AppState extends ChangeNotifier {
   bool _loaded = false;
   DateTime _today = DateTime(2000);
   List<Expense> _todayExpenses = const [];
+  List<ParsedExpense> _frequent = const [];
   int _revision = 0;
 
   bool get isLoaded => _loaded;
@@ -30,9 +31,14 @@ class AppState extends ChangeNotifier {
   List<Expense> get todayExpenses => List.unmodifiable(_todayExpenses);
   int get todayTotal => _todayExpenses.fold(0, (sum, e) => sum + e.amountKurus);
 
+  /// Son 60 günde en az iki kez yazılmış harcamalar (en fazla 4); giriş
+  /// kutusunun altında tek dokunuşla eklenecek çipler olarak gösterilir.
+  List<ParsedExpense> get frequent => List.unmodifiable(_frequent);
+
+  static const int frequentWindowDays = 60;
+
   Future<void> load() async {
-    _today = Day.startOf(_clock());
-    _todayExpenses = await database.expensesOn(Day.key(_today));
+    await _reloadToday(notify: false);
     _loaded = true;
     _changed();
   }
@@ -44,10 +50,23 @@ class AppState extends ChangeNotifier {
   }
 
   /// "taksi 250" gibi bir satırı kaydeder. Tutar bulunamazsa `null`.
-  Future<Expense?> addFromText(String text) async {
+  /// [day] verilirse (geçmiş güne ekleme) kayıt o güne yazılır.
+  Future<Expense?> addFromText(String text, {DateTime? day}) async {
     final parsed = ExpenseParser.parse(text);
     if (parsed == null) return null;
-    return add(name: parsed.name, amountKurus: parsed.amountKurus);
+    return add(
+      name: parsed.name,
+      amountKurus: parsed.amountKurus,
+      at: day == null ? null : timeFor(day),
+    );
+  }
+
+  /// Bir güne eklenecek kaydın zamanı: bugünse şimdi, geçmiş günse 12:00.
+  DateTime timeFor(DateTime day) {
+    final now = _clock();
+    return Day.same(day, now)
+        ? now
+        : DateTime(day.year, day.month, day.day, 12);
   }
 
   Future<Expense> add({
@@ -122,10 +141,19 @@ class AppState extends ChangeNotifier {
     await _reloadToday();
   }
 
-  Future<void> _reloadToday() async {
+  Future<void> _reloadToday({bool notify = true}) async {
     _today = Day.startOf(_clock());
     _todayExpenses = await database.expensesOn(Day.key(_today));
-    _changed();
+    final since = _today.subtract(const Duration(days: frequentWindowDays));
+    final rows = await database.frequent(sinceKey: Day.key(since));
+    _frequent = [
+      for (final r in rows)
+        ParsedExpense(
+          name: r['name'] as String,
+          amountKurus: r['amount_kurus'] as int,
+        ),
+    ];
+    if (notify) _changed();
   }
 
   void _changed() {

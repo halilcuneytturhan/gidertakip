@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AppColors.green ile aynı. -->
+    <color name="ic_launcher_background">#0F6B5C</color>
+    <color name="splash_background">#0F6B5C</color>
+</resources>

@@ -53,12 +53,31 @@ class AppRoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context).state;
-    final Widget page = state.isLoaded
-        ? const MainShell()
-        : const ColoredBox(color: AppColors.background);
+    final Widget page = state.isLoaded ? const MainShell() : const _Splash();
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 250),
       child: KeyedSubtree(key: ValueKey(page.runtimeType), child: page),
+    );
+  }
+}
+
+/// Yerel açılış ekranının (yeşil zemin + fiş işareti) aynısı: veriler
+/// yüklenirken geçişte sıçrama olmaz.
+class _Splash extends StatelessWidget {
+  const _Splash();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: AppColors.green,
+      child: Center(
+        child: Image(
+          image: AssetImage('assets/images/brand/splash_mark.png'),
+          width: 96,
+          height: 96,
+          excludeFromSemantics: true,
+        ),
+      ),
     );
   }
 }

@@ -88,6 +88,22 @@ class AppDatabase {
     };
   }
 
+  /// [sinceKey] gününden bu yana en az [minCount] kez yazılmış ad + tutar
+  /// çiftleri; en sık ve en yeni önce.
+  Future<List<Map<String, Object?>>> frequent({
+    required String sinceKey,
+    int minCount = 2,
+    int limit = 4,
+  }) {
+    return db.rawQuery(
+      'SELECT name, amount_kurus, COUNT(*) AS uses, MAX(spent_at) AS last '
+      'FROM expenses WHERE day >= ? '
+      'GROUP BY name, amount_kurus HAVING COUNT(*) >= ? '
+      'ORDER BY uses DESC, last DESC LIMIT ?',
+      [sinceKey, minCount, limit],
+    );
+  }
+
   /// Dışa aktarım için tüm kayıtlar, eskiden yeniye.
   Future<List<Expense>> all() async {
     final rows = await db.query('expenses', orderBy: 'spent_at ASC, id ASC');

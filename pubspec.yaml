@@ -31,6 +31,8 @@ flutter:
 
   assets:
     - assets/fonts/OFL.txt
+    - assets/images/brand/
+    - assets/legal/
 
   fonts:
     - family: Nunito

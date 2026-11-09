@@ -66,4 +66,49 @@ void main() {
     expect(state.todayExpenses, isEmpty);
     expect(await state.monthTotals(2026, 11), isEmpty);
   });
+
+  test(
+    'geçmiş güne ekleme bugünü etkilemez, o günün öğlesine yazılır',
+    () async {
+      final clock = FakeClock(DateTime(2026, 11, 9, 16, 30));
+      final state = await createTestState(clock);
+
+      final saved = await state.addFromText(
+        'taksi 260',
+        day: DateTime(2026, 11, 8),
+      );
+      expect(saved!.spentAt, DateTime(2026, 11, 8, 12));
+      expect(state.todayExpenses, isEmpty);
+      expect(await state.monthTotals(2026, 11), {8: 26000});
+
+      // Bugün seçilirse şimdiki saat kullanılır.
+      final today = await state.addFromText(
+        'su 15',
+        day: DateTime(2026, 11, 9),
+      );
+      expect(today!.spentAt, DateTime(2026, 11, 9, 16, 30));
+    },
+  );
+
+  test('sık yazılanlar: en az iki kez yazılan ad + tutar', () async {
+    final clock = FakeClock(DateTime(2026, 11, 9, 9));
+    final state = await createTestState(clock);
+    await state.addFromText('kahve 85');
+    expect(state.frequent, isEmpty);
+
+    await state.addFromText('kahve 85', day: DateTime(2026, 11, 7));
+    await state.addFromText('taksi 250');
+    await state.addFromText('taksi 250');
+    await state.addFromText('taksi 250');
+    await state.addFromText('kahve 90');
+    expect(state.frequent.map((e) => '${e.name} ${e.amountKurus}'), [
+      'Taksi 25000',
+      'Kahve 8500',
+    ]);
+
+    // 60 günden eski kayıtlar sayılmaz.
+    clock.now = DateTime(2027, 2, 1, 9);
+    await state.load();
+    expect(state.frequent, isEmpty);
+  });
 }

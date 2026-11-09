@@ -10,6 +10,8 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text.dart';
 import '../../core/widgets/common.dart';
+import '../legal/legal_config.dart';
+import '../legal/legal_document_screen.dart';
 
 /// Ayarlar: dışa aktarma, tüm verileri silme ve uygulama bilgisi.
 class SettingsScreen extends StatelessWidget {
@@ -120,6 +122,20 @@ class SettingsScreen extends StatelessWidget {
                       title: 'Harcamaları dışa aktar (CSV)',
                       onTap: () => _export(tileContext),
                     ),
+                  ),
+                  const Divider(height: 1, color: AppColors.divider),
+                  _SettingsTile(
+                    icon: Icons.privacy_tip_outlined,
+                    title: LegalDocument.privacy.title,
+                    onTap: () =>
+                        openLegalDocument(context, LegalDocument.privacy),
+                  ),
+                  const Divider(height: 1, color: AppColors.divider),
+                  _SettingsTile(
+                    icon: Icons.description_outlined,
+                    title: LegalDocument.terms.title,
+                    onTap: () =>
+                        openLegalDocument(context, LegalDocument.terms),
                   ),
                   const Divider(height: 1, color: AppColors.divider),
                   _SettingsTile(

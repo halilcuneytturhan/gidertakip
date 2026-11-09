@@ -53,4 +53,60 @@ void main() {
     expect(find.text('Kasım toplam'), findsOneWidget);
     expect(find.text('9 Kasım Pazartesi'), findsOneWidget);
   });
+
+  testWidgets('geçmiş güne ekle: takvimden gün seç, "taksi 260" yaz', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final clock = FakeClock(DateTime(2026, 11, 9, 10));
+    final state = await tester.runAsync(() => createTestState(clock));
+    await tester.pumpWidget(EmuGiderApp(state: state!));
+    await tester.pumpAndSettle();
+
+    Future<void> tapAndWait(Finder finder) async {
+      await tester.runAsync(() async {
+        await tester.tap(finder);
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+      });
+      await tester.pumpAndSettle();
+    }
+
+    await tapAndWait(find.byKey(const Key('addPastDay')));
+    expect(find.text('Geçmiş güne ekle'), findsOneWidget);
+    // Varsayılan gün dün.
+    expect(
+      find.text('8 Kasım Pazar gününe ekle', findRichText: true),
+      findsOneWidget,
+    );
+
+    // 5 Kasım'ı seç ve ekle.
+    await tapAndWait(find.text('5'));
+    expect(
+      find.text('5 Kasım Perşembe gününe ekle', findRichText: true),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const Key('quickEntryField')),
+      'taksi 260',
+    );
+    await tapAndWait(find.byKey(const Key('quickEntryAdd')));
+
+    expect(find.text('Taksi'), findsOneWidget);
+    expect(find.text('260 TL'), findsWidgets);
+    expect(state.todayExpenses, isEmpty);
+    final saved = await tester.runAsync(
+      () => state.expensesOn(DateTime(2026, 11, 5)),
+    );
+    expect(saved!.single.amountKurus, 26000);
+
+    // Gelecek günler seçilemez.
+    await tapAndWait(find.text('20'));
+    expect(
+      find.text('5 Kasım Perşembe gününe ekle', findRichText: true),
+      findsOneWidget,
+    );
+  });
 }

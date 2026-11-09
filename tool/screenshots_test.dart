@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:emugider/app/app.dart';
+import 'package:emugider/app/app_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -72,14 +73,24 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.runAsync(_loadFonts);
 
+    // Açılış (veriler yüklenmeden önceki an).
+    final splashState = (await tester.runAsync(
+      () async => AppState(database: await openTestDatabase()),
+    ))!;
+    await tester.pumpWidget(
+      RepaintBoundary(child: EmuGiderApp(state: splashState)),
+    );
+    await _shot(tester, '00_acilis');
+    await tester.pumpWidget(const SizedBox());
+
     final clock = FakeClock(DateTime(2026, 11, 9, 9));
     final state = (await tester.runAsync(() => createTestState(clock)))!;
     await tester.runAsync(() async {
       final samples = <int, List<(String, int)>>{
         2: [('Ekmek', 40), ('Otobüs', 60), ('Öğle yemeği', 180)],
-        3: [('Kahve', 90), ('Taksi', 220)],
-        4: [('Market', 350), ('Cips', 60), ('Su', 30), ('Kahve', 120)],
-        5: [('Öğle yemeği', 150), ('Çay', 35)],
+        3: [('Kahve', 90), ('Taksi', 250)],
+        4: [('Market', 350), ('Otobüs', 60), ('Su', 30), ('Kahve', 120)],
+        5: [('Öğle yemeği', 150), ('Kahve', 85)],
         6: [('Taksi', 200), ('Kahve', 85), ('Dolmuş', 40), ('Market', 1250)],
         7: [('Kira', 12500)],
       };
@@ -97,18 +108,24 @@ void main() {
       await state.addFromText('kahve 330');
     });
 
-    await tester.pumpWidget(
-      RepaintBoundary(child: EmuGiderApp(state: state)),
-    );
+    await tester.pumpWidget(RepaintBoundary(child: EmuGiderApp(state: state)));
     await _shot(tester, '01_ozet');
 
+    await tester.tap(find.byKey(const Key('addPastDay')));
+    await _shot(tester, '02_gecmis_gune_ekle');
+    await tester.tap(find.byTooltip('Geri'));
+    await _settle(tester);
+
     await tester.tap(find.text('Geçmiş'));
-    await _shot(tester, '02_gecmis');
+    await _shot(tester, '03_gecmis');
 
     await tester.tap(find.text('6'));
-    await _shot(tester, '03_gecmis_gun');
+    await _shot(tester, '04_gecmis_gun');
 
     await tester.tap(find.text('Ayarlar').last);
-    await _shot(tester, '04_ayarlar');
+    await _shot(tester, '05_ayarlar');
+
+    await tester.tap(find.text('Gizlilik Politikası'));
+    await _shot(tester, '06_gizlilik');
   });
 }

@@ -90,6 +90,49 @@ class TotalCard extends StatelessWidget {
   }
 }
 
+/// Ortalanmış başlık + geri düğmesi (alt sayfalarda).
+class ScreenHeader extends StatelessWidget {
+  const ScreenHeader({super.key, required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
+    return SizedBox(
+      height: 56,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 48,
+            child: canPop
+                ? IconButton(
+                    tooltip: 'Geri',
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 22,
+                    ),
+                    color: AppColors.textPrimary,
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  )
+                : null,
+          ),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.screenTitle,
+            ),
+          ),
+          const SizedBox(width: 48),
+        ],
+      ),
+    );
+  }
+}
+
 class SectionTitle extends StatelessWidget {
   const SectionTitle(this.text, {super.key, this.trailing});
 

@@ -19,6 +19,7 @@ class MonthCalendar extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onSelect,
+    this.lastDay,
   });
 
   /// Ayın 1'i.
@@ -31,6 +32,19 @@ class MonthCalendar extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final ValueChanged<int> onSelect;
+
+  /// Verilirse bu günden sonraki günler seçilemez ve sonraki aya geçilmez
+  /// (geçmiş güne ekleme ekranı).
+  final DateTime? lastDay;
+
+  bool get _canGoNext {
+    final last = lastDay;
+    if (last == null) return true;
+    return DateTime(
+      month.year,
+      month.month + 1,
+    ).isBefore(DateTime(last.year, last.month, last.day + 1));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +76,7 @@ class MonthCalendar extends StatelessWidget {
                 _RoundButton(
                   icon: Icons.chevron_right_rounded,
                   tooltip: 'Sonraki ay',
-                  onPressed: onNext,
+                  onPressed: _canGoNext ? onNext : null,
                 ),
               ],
             ),
@@ -102,7 +116,12 @@ class MonthCalendar extends StatelessWidget {
     final total = totals[day] ?? 0;
     final selected = day == selectedDay;
     final isToday = Day.same(date, today);
-    final numberColor = selected ? AppColors.onGreen : AppColors.textPrimary;
+    final enabled = lastDay == null || !date.isAfter(lastDay!);
+    final numberColor = selected
+        ? AppColors.onGreen
+        : enabled
+        ? AppColors.textPrimary
+        : AppColors.border;
     final amountColor = selected
         ? AppColors.greenSoft
         : AppColors.textSecondary;
@@ -111,6 +130,7 @@ class MonthCalendar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 1),
       child: Semantics(
         button: true,
+        enabled: enabled,
         selected: selected,
         label:
             '$day ${Day.months[month.month - 1]}, '
@@ -126,7 +146,7 @@ class MonthCalendar extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () => onSelect(day),
+            onTap: enabled ? () => onSelect(day) : null,
             child: SizedBox(
               height: 54,
               child: Column(
@@ -173,7 +193,7 @@ class _RoundButton extends StatelessWidget {
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +203,8 @@ class _RoundButton extends StatelessWidget {
       style: IconButton.styleFrom(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
+        disabledBackgroundColor: AppColors.background,
+        disabledForegroundColor: AppColors.border,
         minimumSize: const Size(44, 44),
       ),
       icon: Icon(icon, size: 24),

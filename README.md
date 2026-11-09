@@ -37,9 +37,10 @@ flutter test tool/screenshots_test.dart       # ekran görüntüleri → build/s
 
 | Sekme | İçerik |
 | --- | --- |
-| **Özet** | Bugünün toplamı, "Ne harcadın?" satırı + Ekle, bugün eklenenler (dokun → düzenle, sola kaydır → sil, Geri al) |
+| **Özet** | Bugünün toplamı, "Ne harcadın?" satırı + Ekle, sık yazılanlar (son 60 günde en az iki kez yazılan ad + tutar, tek dokunuşla eklenir), "Geçmiş günlere harcama ekle", bugün eklenenler (dokun → düzenle, sola kaydır → sil, Geri al) |
+| **Geçmiş güne ekle** | Üstte takvim (varsayılan dün, gelecek günler kapalı), altta aynı giriş satırı; yazılan her satır seçili güne 12:00 saatiyle eklenir |
 | **Geçmiş** | Ayın toplamı, Pazartesi ile başlayan takvim (her günün altında o günün tutarı), seçili günün harcamaları |
-| **Ayarlar** | Harcamaları CSV olarak dışa aktar, Hakkında, Tüm verileri sil |
+| **Ayarlar** | Harcamaları CSV olarak dışa aktar, Gizlilik Politikası, Kullanım Koşulları, Hakkında, Tüm verileri sil |
 
 ### Tek satır giriş kuralları (`lib/core/utils/expense_parser.dart`)
 
@@ -59,11 +60,51 @@ lib/
   app/                      app, AppScope, AppState, tema, cam alt menü
   core/                     model, SQLite, ayrıştırıcı, para/tarih yardımcıları, ortak widget'lar
   features/today/           Özet sekmesi
+  features/add_past/        Geçmiş güne ekleme ekranı
+  features/legal/           Gizlilik / koşullar ekranı
   features/history/         Geçmiş sekmesi ve ay takvimi
   features/settings/        Ayarlar sekmesi
-  features/shared/          harcama listesi ve düzenleme sayfası
+  features/shared/          giriş kartı, harcama listesi, düzenleme sayfası
 test/                       ayrıştırıcı, veri katmanı ve akış testleri
 tool/screenshots_test.dart  ekran görüntüsü üretici
+tool/brand/                 ikon ve açılış görselleri üretici
+tool/legal/                 barındırılan yasal sayfalar üretici
+assets/legal/               gizlilik ve koşul metinleri (tek kaynak)
+docs/legal/                 GitHub Pages için yasal sayfalar
+```
+
+## İkon ve açılış ekranı
+
+Yeşil zemin üzerinde beyaz fiş işareti koddan çizilir:
+
+```bash
+python3 tool/brand/build_brand_assets.py   # Pillow gerekir
+```
+
+Android eski ikon + uyarlanabilir ikon (temalı ikon dahil), Android 12+
+sistem açılış ekranı, iOS AppIcon ve LaunchScreen ile uygulama içi açılış
+görseli (`assets/images/brand/splash_mark.png`) üretilir.
+
+## Gizlilik politikası ve koşullar
+
+Metinlerin tek kaynağı `assets/legal/*.md`. Uygulama içinde Ayarlar'dan
+açılır; mağaza için barındırılan sayfalar aynı dosyalardan üretilir:
+
+```bash
+python3 tool/legal/build_legal_pages.py \
+    --developer "Ad Soyad" --contact destek@ornek.com
+```
+
+`docs/legal/` klasörü GitHub Pages ile yayınlanabilir (Settings → Pages →
+Branch: main, /docs). Gizlilik adresi:
+`https://<kullanıcı>.github.io/gidertakip/legal/gizlilik.html`.
+
+Mağaza derlemesinde uygulama içi metinlerdeki ad ve e-posta için:
+
+```bash
+flutter build appbundle \
+    --dart-define=LEGAL_DEVELOPER_NAME="Ad Soyad" \
+    --dart-define=LEGAL_CONTACT_EMAIL=destek@ornek.com
 ```
 
 ## Yayın imzası (Android)
@@ -81,6 +122,5 @@ storeFile=/yol/upload-keystore.jks
 
 ## Henüz yapılmayanlar
 
-- Uygulama ikonu ve açılış ekranı (şimdilik Flutter'ın varsayılanı)
-- Gizlilik politikası sayfası (mağaza başvurusu için gerekli)
-- Bildirim / hatırlatıcı, ana ekran widget'ı
+- Bildirim / akşam hatırlatıcısı, ana ekran widget'ı
+- Yedekten geri yükleme (şimdilik yalnızca CSV dışa aktarma)
