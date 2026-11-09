@@ -103,6 +103,11 @@ void main() {
           );
         }
       }
+      await state.add(
+        name: 'Market',
+        amountKurus: 210000,
+        at: DateTime(2026, 10, 20, 12),
+      );
       await state.addFromText('taksi 250');
       await state.addFromText('cips 80');
       await state.addFromText('kahve 330');
@@ -140,6 +145,8 @@ void main() {
 
     await tester.tap(find.text('Harcamaları dışa aktar'));
     await _shot(tester, '05b_disa_aktar');
+    await tester.tap(find.text('PDF'));
+    await _shot(tester, '05c_rapor_ayi');
     await tester.tapAt(const Offset(195, 60));
     await _settle(tester);
 

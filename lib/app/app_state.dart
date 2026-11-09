@@ -144,6 +144,22 @@ class AppState extends ChangeNotifier {
   Future<List<Expense>> expensesOn(DateTime day) =>
       database.expensesOn(Day.key(day));
 
+  /// Rapor alınabilecek aylar (ayın 1'i) ve toplamları, en yeni önce.
+  Future<List<({DateTime month, int totalKurus})>> reportMonths() async {
+    final rows = await database.monthsWithExpenses();
+    return [
+      for (final r in rows)
+        (
+          month: DateTime.parse('${r['month']}-01'),
+          totalKurus: r['total'] as int,
+        ),
+    ];
+  }
+
+  /// [from] ile [to] günleri (ikisi dahil) arasındaki kayıtlar, eskiden yeniye.
+  Future<List<Expense>> expensesBetween(DateTime from, DateTime to) =>
+      database.between(Day.key(from), Day.key(to));
+
   /// Dışa aktarım için tüm kayıtlar, eskiden yeniye.
   Future<List<Expense>> allExpenses() => database.all();
 

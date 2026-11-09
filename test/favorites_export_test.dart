@@ -141,6 +141,75 @@ void main() {
       ),
     ];
 
+    test('rapor dönemi ilk kayıttan değil ayın 1\'inden başlar', () async {
+      final state = await createTestState(FakeClock(DateTime(2026, 11, 9, 9)));
+      Future<void> add(String name, DateTime at) =>
+          state.add(name: name, amountKurus: 9000, at: at);
+      await add('Ekim sonu', DateTime(2026, 10, 31, 23));
+      await add('Kasım 5', DateTime(2026, 11, 5, 12));
+      await add('Bugün', DateTime(2026, 11, 9, 8));
+
+      final monthStart = DateTime(2026, 11);
+      final now = DateTime(2026, 11, 9, 9);
+      final month = await state.expensesBetween(monthStart, now);
+      expect(month.map((e) => e.name), ['Kasım 5', 'Bugün']);
+
+      final archive = ZipDecoder().decodeBytes(
+        ExpenseExport.docx(
+          month,
+          periodStart: monthStart,
+          periodEnd: now,
+          generatedAt: now,
+        ),
+      );
+      final xml = utf8.decode(
+        archive.findFile('word/document.xml')!.content as List<int>,
+      );
+      expect(xml, contains('1 Kasım 2026 – 9 Kasım 2026'));
+      // 180 TL / 9 gün.
+      expect(xml, contains('>20 TL<'));
+      expect(xml, isNot(contains('Ekim sonu')));
+    });
+
+    test('geçmiş ay raporu ayın tamamını kapsar, aylar listelenir', () async {
+      final state = await createTestState(FakeClock(DateTime(2026, 11, 9, 9)));
+      await state.add(
+        name: 'Ekim',
+        amountKurus: 31000,
+        at: DateTime(2026, 10, 20, 12),
+      );
+      await state.add(
+        name: 'Kasım',
+        amountKurus: 5000,
+        at: DateTime(2026, 11, 2, 12),
+      );
+
+      final months = await state.reportMonths();
+      expect(months, [
+        (month: DateTime(2026, 11), totalKurus: 5000),
+        (month: DateTime(2026, 10), totalKurus: 31000),
+      ]);
+
+      final start = DateTime(2026, 10);
+      final end = DateTime(2026, 10, 31);
+      final rows = await state.expensesBetween(start, end);
+      final archive = ZipDecoder().decodeBytes(
+        ExpenseExport.docx(
+          rows,
+          periodStart: start,
+          periodEnd: end,
+          generatedAt: DateTime(2026, 11, 9),
+        ),
+      );
+      final xml = utf8.decode(
+        archive.findFile('word/document.xml')!.content as List<int>,
+      );
+      expect(xml, contains('1 Ekim 2026 – 31 Ekim 2026'));
+      // 310 TL / 31 gün.
+      expect(xml, contains('>10 TL<'));
+      expect(xml, isNot(contains('>Kasım<')));
+    });
+
     test('PDF: 20 sayfadan uzun geçmiş de üretilir', () async {
       final many = [
         for (var i = 0; i < 2000; i++)
@@ -155,6 +224,8 @@ void main() {
         regular: _font('Regular'),
         bold: _font('Bold'),
         logo: File('assets/images/brand/splash_mark.png').readAsBytesSync(),
+        periodStart: DateTime(2026, 1, 1),
+        periodEnd: DateTime(2026, 3, 25),
         generatedAt: DateTime(2026, 11, 9),
       );
       expect(ascii.decode(bytes.sublist(0, 4)), '%PDF');
@@ -162,7 +233,12 @@ void main() {
 
     test('Word: geçerli zip, XML kaçışları ve aylar doğru', () {
       final archive = ZipDecoder().decodeBytes(
-        ExpenseExport.docx(rows, generatedAt: DateTime(2026, 11, 9)),
+        ExpenseExport.docx(
+          rows,
+          periodStart: DateTime(2026, 10, 31),
+          periodEnd: DateTime(2026, 11, 3),
+          generatedAt: DateTime(2026, 11, 3),
+        ),
       );
       expect(
         archive.files.map((f) => f.name),
@@ -189,6 +265,40 @@ void main() {
       // En çok harcananlarda pay: İlaç 1.250 / 1.665,50 ≈ %75.
       expect(xml, contains('>%75<'));
     });
+  });
+
+  testWidgets('dışa aktarma: PDF seçince aylar listelenir', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final state = (await tester.runAsync(
+      () => createTestState(FakeClock(DateTime(2026, 11, 9, 10))),
+    ))!;
+    await tester.runAsync(() async {
+      await state.addFromText('kahve 85');
+      await state.addFromText('taksi 250', day: DateTime(2026, 10, 20));
+    });
+    await tester.pumpWidget(EmuGiderApp(state: state));
+    await tester.pumpAndSettle();
+
+    Future<void> tapAndWait(Finder finder) async {
+      await tester.runAsync(() async {
+        await tester.tap(finder);
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+      });
+      await tester.pumpAndSettle();
+    }
+
+    await tapAndWait(find.text('Ayarlar').last);
+    await tapAndWait(find.text('Harcamaları dışa aktar'));
+    await tapAndWait(find.text('PDF'));
+
+    expect(find.text('Hangi ayın raporu?'), findsOneWidget);
+    expect(find.text('Kasım 2026'), findsOneWidget);
+    expect(find.text('Bugüne kadar'), findsOneWidget);
+    expect(find.text('Ekim 2026'), findsOneWidget);
+    expect(find.text('250 TL'), findsOneWidget);
   });
 
   testWidgets('Özet: aç/kapa, kalem ve sık kullanılan kutusu', (tester) async {

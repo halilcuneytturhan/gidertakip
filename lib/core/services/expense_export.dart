@@ -11,19 +11,14 @@ import '../utils/money.dart';
 
 /// Ayarlar → Harcamaları dışa aktar seçenekleri.
 enum ExportFormat {
-  pdf('PDF', 'Okumaya ve yazdırmaya uygun', 'pdf', 'application/pdf'),
+  pdf('PDF', 'Aylık rapor, yazdırmaya uygun', 'pdf', 'application/pdf'),
   word(
     'Word',
-    'Word veya Google Dokümanlar ile açılır',
+    'Aylık rapor, Word ile açılır',
     'docx',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ),
-  csv(
-    'CSV (Excel)',
-    'Excel veya Google E-Tablolar ile açılır',
-    'csv',
-    'text/csv',
-  );
+  csv('CSV (Excel)', 'Tüm harcamalar, Excel ile açılır', 'csv', 'text/csv');
 
   const ExportFormat(this.label, this.description, this.extension, this.mime);
 
@@ -58,9 +53,11 @@ abstract final class ExpenseExport {
     required ByteData regular,
     required ByteData bold,
     required Uint8List logo,
+    required DateTime periodStart,
+    required DateTime periodEnd,
     required DateTime generatedAt,
   }) {
-    final report = _Report(rows);
+    final report = _Report(rows, periodStart, periodEnd);
     final green = PdfColor.fromInt(_green);
     final greenSoft = PdfColor.fromInt(_greenSoft);
     final zebra = PdfColor.fromInt(_zebra);
@@ -360,8 +357,13 @@ abstract final class ExpenseExport {
   static const int _pageWidth = 9638;
 
   /// .docx: bir zip içinde XML dosyaları (belge, altbilgi, ilişkiler).
-  static Uint8List docx(List<Expense> rows, {required DateTime generatedAt}) {
-    final report = _Report(rows);
+  static Uint8List docx(
+    List<Expense> rows, {
+    required DateTime periodStart,
+    required DateTime periodEnd,
+    required DateTime generatedAt,
+  }) {
+    final report = _Report(rows, periodStart, periodEnd);
     final body = StringBuffer()
       ..write(_banner(report))
       ..write(_spacer(120))
@@ -648,13 +650,13 @@ abstract final class ExpenseExport {
 
 /// Raporun hesaplanmış içeriği; PDF ve Word aynı sayıları gösterir.
 class _Report {
-  _Report(List<Expense> rows)
+  _Report(List<Expense> rows, DateTime from, DateTime to)
     : count = rows.length,
       total = rows.fold(0, (sum, e) => sum + e.amountKurus),
-      period = _periodOf(rows),
+      period = _periodOf(from, to),
       months = _monthsOf(rows),
       top = _topOf(rows),
-      dailyAverage = _dailyAverageOf(rows);
+      dailyAverage = _dailyAverageOf(rows, from, to);
 
   final int count;
   final int total;
@@ -666,19 +668,16 @@ class _Report {
   String share(_NameTotal item) =>
       '%${total == 0 ? 0 : (item.total * 100 / total).round()}';
 
-  static String _periodOf(List<Expense> rows) {
-    if (rows.isEmpty) return '';
-    final first = ExpenseExport._longDate(rows.first.spentAt);
-    final last = ExpenseExport._longDate(rows.last.spentAt);
+  static String _periodOf(DateTime from, DateTime to) {
+    final first = ExpenseExport._longDate(from);
+    final last = ExpenseExport._longDate(to);
     return first == last ? first : '$first – $last';
   }
 
   /// Dönemin ilk gününden son gününe takvim günü başına ortalama (kuruş).
-  static int _dailyAverageOf(List<Expense> rows) {
-    if (rows.isEmpty) return 0;
+  static int _dailyAverageOf(List<Expense> rows, DateTime from, DateTime to) {
     DateTime utc(DateTime d) => DateTime.utc(d.year, d.month, d.day);
-    final days =
-        utc(rows.last.spentAt).difference(utc(rows.first.spentAt)).inDays + 1;
+    final days = utc(to).difference(utc(from)).inDays + 1;
     return (rows.fold(0, (sum, e) => sum + e.amountKurus) / days).round();
   }
 

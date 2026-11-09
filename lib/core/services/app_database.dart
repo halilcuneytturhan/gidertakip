@@ -150,6 +150,25 @@ class AppDatabase {
     );
   }
 
+  /// Harcama olan aylar (`yyyy-MM`) ve toplamları, en yeni önce.
+  Future<List<Map<String, Object?>>> monthsWithExpenses() {
+    return db.rawQuery(
+      'SELECT substr(day, 1, 7) AS month, SUM(amount_kurus) AS total '
+      'FROM expenses GROUP BY month ORDER BY month DESC',
+    );
+  }
+
+  /// [fromKey] ile [toKey] (ikisi dahil) arasındaki kayıtlar, eskiden yeniye.
+  Future<List<Expense>> between(String fromKey, String toKey) async {
+    final rows = await db.query(
+      'expenses',
+      where: 'day BETWEEN ? AND ?',
+      whereArgs: [fromKey, toKey],
+      orderBy: 'spent_at ASC, id ASC',
+    );
+    return rows.map(Expense.fromRow).toList();
+  }
+
   /// Dışa aktarım için tüm kayıtlar, eskiden yeniye.
   Future<List<Expense>> all() async {
     final rows = await db.query('expenses', orderBy: 'spent_at ASC, id ASC');
