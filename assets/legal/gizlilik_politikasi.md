@@ -27,9 +27,11 @@ Cihazınızın kendi yedekleme özelliği (iCloud veya Google yedeklemesi) açı
 
 Verileri dilediğiniz zaman **Ayarlar → Tüm verileri sil** ile ya da Uygulamayı cihazınızdan kaldırarak silebilirsiniz.
 
-## 4. Dışa aktarma
+## 4. Dışa aktarma ve geri yükleme
 
 **Ayarlar → Harcamaları dışa aktar** seçeneğini kullandığınızda harcamalarınızdan bir dosya oluşturulur ve cihazınızın paylaşım menüsü açılır. Dosyanın nereye gönderileceğini (e-posta, bulut depolama, mesajlaşma uygulaması vb.) siz seçersiniz; bundan sonraki işleme seçtiğiniz uygulamanın veya hizmetin gizlilik politikasına tabidir. Bu dosya bize ulaşmaz.
+
+**Ayarlar → Yedekten geri yükle** seçeneğini kullandığınızda seçtiğiniz dosya yalnızca cihazınızda okunur ve içindeki harcamalar cihazınızdaki veritabanına eklenir. Bu dosya bize ulaşmaz.
 
 ## 5. İzinler
 

@@ -64,6 +64,15 @@ class AppDatabase {
     );
   }
 
+  /// Hepsi eklenir ya da hiçbiri (geri yükleme).
+  Future<void> insertAll(List<Expense> expenses) async {
+    final batch = db.batch();
+    for (final expense in expenses) {
+      batch.insert('expenses', expense.toRow());
+    }
+    await batch.commit(noResult: true);
+  }
+
   Future<void> update(Expense expense) async {
     await db.update(
       'expenses',

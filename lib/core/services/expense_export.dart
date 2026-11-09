@@ -18,7 +18,7 @@ enum ExportFormat {
     'docx',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ),
-  csv('CSV (Excel)', 'Tüm harcamalar, Excel ile açılır', 'csv', 'text/csv');
+  csv('CSV (Excel)', 'Yedek için: tüm harcamalar', 'csv', 'text/csv');
 
   const ExportFormat(this.label, this.description, this.extension, this.mime);
 

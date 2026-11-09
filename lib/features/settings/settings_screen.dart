@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -11,6 +12,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text.dart';
 import '../../core/models/expense.dart';
+import '../../core/services/expense_backup.dart';
 import '../../core/services/expense_export.dart';
 import '../../core/utils/day.dart';
 import '../../core/utils/money.dart';
@@ -233,6 +235,50 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _restore(BuildContext context) async {
+    final state = AppScope.read(context).state;
+    try {
+      final group = XTypeGroup(
+        label: 'CSV',
+        extensions: const ['csv'],
+        mimeTypes: const [
+          'text/csv',
+          'text/comma-separated-values',
+          'text/plain',
+          'application/csv',
+          'application/vnd.ms-excel',
+        ],
+        uniformTypeIdentifiers: const [
+          'public.comma-separated-values-text',
+          'public.plain-text',
+        ],
+      );
+      final file = await openFile(acceptedTypeGroups: [group]);
+      if (file == null) return;
+      final result = await state.restoreFromCsv(await file.readAsBytes());
+      if (context.mounted) showAppSnackBar(context, _restoreMessage(result));
+    } catch (_) {
+      if (context.mounted) showAppSnackBar(context, 'Yedek geri yüklenemedi.');
+    }
+  }
+
+  String _restoreMessage(RestoreResult? result) {
+    if (result == null) return 'Bu dosya bir EmuGider CSV yedeği değil.';
+    final skipped = result.skipped > 0
+        ? ' ${result.skipped} satır okunamadı.'
+        : '';
+    if (result.added > 0) {
+      final duplicates = result.duplicates > 0
+          ? ' ${result.duplicates} tanesi zaten vardı.'
+          : '';
+      return '${result.added} harcama geri yüklendi.$duplicates$skipped';
+    }
+    if (result.duplicates > 0) {
+      return 'Bu dosyadaki harcamalar zaten var.$skipped';
+    }
+    return 'Dosyada geri yüklenecek harcama yok.$skipped';
+  }
+
   Future<void> _deleteAll(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -312,6 +358,12 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const Divider(height: 1, color: AppColors.divider),
                   _SettingsTile(
+                    icon: Icons.settings_backup_restore_rounded,
+                    title: 'Yedekten geri yükle',
+                    onTap: () => _restore(context),
+                  ),
+                  const Divider(height: 1, color: AppColors.divider),
+                  _SettingsTile(
                     icon: Icons.privacy_tip_outlined,
                     title: LegalDocument.privacy.title,
                     onTap: () =>
@@ -345,7 +397,7 @@ class SettingsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 'Veriler yalnızca bu cihazda saklanır. Telefonunu '
-                'değiştirmeden önce dışa aktarmayı unutma.',
+                'değiştirmeden önce CSV olarak dışa aktarmayı unutma.',
                 textAlign: TextAlign.center,
                 style: AppText.small.copyWith(color: AppColors.textTertiary),
               ),

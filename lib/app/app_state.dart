@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/models/expense.dart';
 import '../core/services/app_database.dart';
+import '../core/services/expense_backup.dart';
 import '../core/utils/day.dart';
 import '../core/utils/expense_parser.dart';
 
@@ -207,6 +208,44 @@ class AppState extends ChangeNotifier {
       buffer.writeln('${e.dayKey};$time;"$name";$lira,$kurus');
     }
     return buffer.toString();
+  }
+
+  /// Dışa aktarılmış CSV'deki harcamaları ekler; cihazda zaten olan kayıtlar
+  /// atlanır. Aynı dakikada iki kez yazılmış aynı harcama iki kayıt sayılır.
+  /// Dosya EmuGider yedeği değilse `null`.
+  Future<RestoreResult?> restoreFromCsv(Uint8List bytes) async {
+    final parsed = ExpenseBackup.parse(bytes);
+    if (parsed == null) return null;
+
+    final existing = <String, int>{};
+    for (final e in await database.all()) {
+      existing.update(
+        ExpenseBackup.key(e),
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+    }
+    final fresh = <Expense>[];
+    var duplicates = 0;
+    for (final e in parsed.rows) {
+      final key = ExpenseBackup.key(e);
+      final count = existing[key] ?? 0;
+      if (count > 0) {
+        existing[key] = count - 1;
+        duplicates++;
+      } else {
+        fresh.add(e);
+      }
+    }
+    if (fresh.isNotEmpty) {
+      await database.insertAll(fresh);
+      await _reloadToday();
+    }
+    return RestoreResult(
+      added: fresh.length,
+      duplicates: duplicates,
+      skipped: parsed.skipped,
+    );
   }
 
   /// Tüm harcamaları bu cihazdan siler.
