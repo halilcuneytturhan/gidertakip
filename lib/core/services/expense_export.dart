@@ -11,10 +11,10 @@ import '../utils/money.dart';
 
 /// Ayarlar → Harcamaları dışa aktar seçenekleri.
 enum ExportFormat {
-  pdf('PDF', 'Aylık rapor, yazdırmaya uygun', 'pdf', 'application/pdf'),
+  pdf('PDF', 'Rapor, yazdırmaya uygun', 'pdf', 'application/pdf'),
   word(
     'Word',
-    'Aylık rapor, Word ile açılır',
+    'Rapor, Word ile açılır',
     'docx',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ),

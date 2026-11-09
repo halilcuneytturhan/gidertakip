@@ -58,14 +58,14 @@ class SettingsScreen extends StatelessWidget {
       await _export(context, format);
       return;
     }
-    final month = await _chooseMonth(context);
-    if (month != null && context.mounted) {
-      await _export(context, format, month: month);
+    final report = await _chooseReport(context);
+    if (report != null && context.mounted) {
+      await _export(context, format, report: report);
     }
   }
 
-  /// Harcama olan aylar arasından rapor ayını seçtirir; vazgeçilirse `null`.
-  Future<DateTime?> _chooseMonth(BuildContext context) async {
+  /// "Bugüne kadar" ya da harcama olan aylardan biri; vazgeçilirse `null`.
+  Future<_ReportChoice?> _chooseReport(BuildContext context) async {
     final state = AppScope.read(context).state;
     final months = await state.reportMonths();
     if (!context.mounted) return null;
@@ -74,7 +74,8 @@ class SettingsScreen extends StatelessWidget {
       return null;
     }
     final now = state.now;
-    return showModalBottomSheet<DateTime>(
+    final grandTotal = months.fold(0, (sum, m) => sum + m.totalKurus);
+    return showModalBottomSheet<_ReportChoice>(
       context: context,
       useRootNavigator: true,
       builder: (sheetContext) => SafeArea(
@@ -84,12 +85,29 @@ class SettingsScreen extends StatelessWidget {
           children: [
             const Padding(
               padding: EdgeInsets.only(bottom: 8),
-              child: Text('Hangi ayın raporu?', style: AppText.heading),
+              child: Text('Hangi dönemin raporu?', style: AppText.heading),
             ),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
                 children: [
+                  ListTile(
+                    minTileHeight: 56,
+                    title: const Text(
+                      'Bugüne kadar',
+                      style: AppText.subheading,
+                    ),
+                    subtitle: const Text(
+                      'Tüm harcamalar',
+                      style: AppText.small,
+                    ),
+                    trailing: Text(
+                      Money.format(grandTotal),
+                      style: AppText.bodyStrong,
+                    ),
+                    onTap: () =>
+                        Navigator.pop(sheetContext, const _ReportChoice()),
+                  ),
                   for (final item in months)
                     ListTile(
                       minTileHeight: 56,
@@ -100,13 +118,16 @@ class SettingsScreen extends StatelessWidget {
                       subtitle:
                           item.month.year == now.year &&
                               item.month.month == now.month
-                          ? const Text('Bugüne kadar', style: AppText.small)
+                          ? const Text('Bu ay', style: AppText.small)
                           : null,
                       trailing: Text(
                         Money.format(item.totalKurus),
                         style: AppText.bodyStrong,
                       ),
-                      onTap: () => Navigator.pop(sheetContext, item.month),
+                      onTap: () => Navigator.pop(
+                        sheetContext,
+                        _ReportChoice(month: item.month),
+                      ),
                     ),
                 ],
               ),
@@ -118,8 +139,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  /// PDF ve Word [periodStart] ayının raporudur; CSV tüm kayıtları içerir,
-  /// telefon değiştirirken yedek olarak işe yarar.
+  /// PDF ve Word seçilen dönemin raporudur; CSV tüm kayıtları içerir, telefon
+  /// değiştirirken yedek olarak işe yarar.
   Future<Uint8List> _build(
     AppState state,
     ExportFormat format,
@@ -154,12 +175,12 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
-  /// [month] verilirse (PDF / Word) o ayın raporu: geçmiş ayda ayın tamamı,
-  /// içinde bulunulan ayda bugüne kadarı.
+  /// [report] PDF / Word içindir: geçmiş ayda ayın tamamı, içinde bulunulan
+  /// ayda bugüne kadarı, "Bugüne kadar"da ilk kayıttan bugüne tüm harcamalar.
   Future<void> _export(
     BuildContext context,
     ExportFormat format, {
-    DateTime? month,
+    _ReportChoice? report,
   }) async {
     final state = AppScope.read(context).state;
     final box = context.findRenderObject() as RenderBox?;
@@ -168,13 +189,16 @@ class SettingsScreen extends StatelessWidget {
         : box.localToGlobal(Offset.zero) & box.size;
     try {
       final now = state.now;
-      final start = month ?? now;
-      final lastOfMonth = DateTime(
-        start.year,
-        start.month,
-        Day.daysInMonth(start.year, start.month),
-      );
-      final end = lastOfMonth.isAfter(now) ? now : lastOfMonth;
+      final month = report?.month;
+      var end = now;
+      if (month != null) {
+        final lastOfMonth = DateTime(
+          month.year,
+          month.month,
+          Day.daysInMonth(month.year, month.month),
+        );
+        if (lastOfMonth.isBefore(now)) end = lastOfMonth;
+      }
       final rows = month == null
           ? await state.allExpenses()
           : await state.expensesBetween(month, end);
@@ -184,10 +208,12 @@ class SettingsScreen extends StatelessWidget {
         }
         return;
       }
-      // Farklı ayların raporları Drive vb. yerde birbirine karışmasın.
-      final fileName = month == null
+      final start = month ?? rows.first.spentAt;
+      // Farklı dönemlerin raporları Drive vb. yerde birbirine karışmasın.
+      final fileName = report == null
           ? format.fileName
-          : 'emugider-rapor-${Day.key(month).substring(0, 7)}'
+          : 'emugider-rapor-'
+                '${month == null ? 'tumu' : Day.key(month).substring(0, 7)}'
                 '.${format.extension}';
       final file = XFile.fromData(
         await _build(state, format, rows, start, end),
@@ -329,6 +355,13 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Rapor dönemi: [month] ayın 1'idir, `null` ise "Bugüne kadar".
+class _ReportChoice {
+  const _ReportChoice({this.month});
+
+  final DateTime? month;
 }
 
 class _SettingsTile extends StatelessWidget {

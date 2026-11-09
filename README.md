@@ -40,7 +40,7 @@ flutter test tool/screenshots_test.dart       # ekran görüntüleri → build/s
 | **Özet** | Bugünün toplamı, "Ne harcadın?" satırı + Ekle, sık kullanılanlar (kullanıcının başlıktaki + ile ekledikleri, kalan yer son 60 günde en az iki kez yazılan ad + tutarla dolar; tek dokunuşla eklenir, kullanıcının eklediği çip basılı tutulunca çıkar), "Geçmiş günlere harcama ekle", bugün eklenenler (açılıp kapanır; dokun veya kalem → düzenle, sola kaydır → sil, Geri al) |
 | **Geçmiş güne ekle** | Üstte takvim (varsayılan dün, gelecek günler kapalı), altta aynı giriş satırı; yazılan her satır seçili güne 12:00 saatiyle eklenir |
 | **Geçmiş** | Ayın toplamı, Pazartesi ile başlayan takvim (her günün altında o günün tutarı), seçili günün harcamaları, ayda en çok harcanan 5 ad |
-| **Ayarlar** | Seçilen ayın raporunu (içinde bulunulan ayda ayın 1'i → bugün) PDF veya Word olarak, tüm harcamaları CSV olarak dışa aktar, Gizlilik Politikası, Kullanım Koşulları, Hakkında, Tüm verileri sil |
+| **Ayarlar** | Seçilen dönemin raporunu ("Bugüne kadar" ya da bir ay; içinde bulunulan ayda ayın 1'i → bugün) PDF veya Word olarak, tüm harcamaları CSV olarak dışa aktar, Gizlilik Politikası, Kullanım Koşulları, Hakkında, Tüm verileri sil |
 
 ### Tek satır giriş kuralları (`lib/core/utils/expense_parser.dart`)
 

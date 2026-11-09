@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:emugider/app/app.dart';
@@ -8,6 +7,7 @@ import 'package:emugider/core/models/expense.dart';
 import 'package:emugider/core/services/app_database.dart';
 import 'package:emugider/core/services/expense_export.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -294,11 +294,44 @@ void main() {
     await tapAndWait(find.text('Harcamaları dışa aktar'));
     await tapAndWait(find.text('PDF'));
 
-    expect(find.text('Hangi ayın raporu?'), findsOneWidget);
+    expect(find.text('Hangi dönemin raporu?'), findsOneWidget);
     expect(find.text('Kasım 2026'), findsOneWidget);
     expect(find.text('Bugüne kadar'), findsOneWidget);
+    expect(find.text('Tüm harcamalar'), findsOneWidget);
+    expect(find.text('335 TL'), findsOneWidget);
+    expect(find.text('Bu ay'), findsOneWidget);
     expect(find.text('Ekim 2026'), findsOneWidget);
     expect(find.text('250 TL'), findsOneWidget);
+
+    // "Bugüne kadar" tüm dönemi kapsayan gerçek bir PDF paylaşır.
+    final tmp = Directory.systemTemp.createTempSync('emugider');
+    addTearDown(() => tmp.deleteSync(recursive: true));
+    Map<Object?, Object?>? shared;
+    const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
+    const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(shareChannel, (call) async {
+      shared = call.arguments as Map<Object?, Object?>;
+      return 'ok';
+    });
+    messenger.setMockMethodCallHandler(pathChannel, (_) async => tmp.path);
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(shareChannel, null);
+      messenger.setMockMethodCallHandler(pathChannel, null);
+    });
+
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Bugüne kadar'));
+      await tester.pump(const Duration(milliseconds: 400));
+      for (var i = 0; i < 100 && shared == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    });
+    expect(shared, isNotNull);
+    final path = (shared!['paths']! as List<Object?>).single! as String;
+    expect(p.basename(path), 'emugider-rapor-tumu.pdf');
+    expect(ascii.decode(File(path).readAsBytesSync().sublist(0, 4)), '%PDF');
   });
 
   testWidgets('Özet: aç/kapa, kalem ve sık kullanılan kutusu', (tester) async {
