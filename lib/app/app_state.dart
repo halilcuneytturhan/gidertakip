@@ -1,0 +1,135 @@
+import 'package:flutter/foundation.dart';
+
+import '../core/models/expense.dart';
+import '../core/services/app_database.dart';
+import '../core/utils/day.dart';
+import '../core/utils/expense_parser.dart';
+
+/// Uygulama genelindeki veri: bugünün harcamaları ve geçmiş sorguları.
+/// Tüm yazmalar önce yerel veritabanına yapılır, ardından dinleyiciler
+/// bilgilendirilir. Her değişiklikte [revision] artar; geçmiş ekranı buna
+/// bakarak kendi sorgusunu yeniler.
+class AppState extends ChangeNotifier {
+  AppState({required this.database, DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
+
+  final AppDatabase database;
+  final DateTime Function() _clock;
+
+  bool _loaded = false;
+  DateTime _today = DateTime(2000);
+  List<Expense> _todayExpenses = const [];
+  int _revision = 0;
+
+  bool get isLoaded => _loaded;
+  DateTime get now => _clock();
+  DateTime get today => _today;
+  int get revision => _revision;
+
+  /// En yeni önce.
+  List<Expense> get todayExpenses => List.unmodifiable(_todayExpenses);
+  int get todayTotal => _todayExpenses.fold(0, (sum, e) => sum + e.amountKurus);
+
+  Future<void> load() async {
+    _today = Day.startOf(_clock());
+    _todayExpenses = await database.expensesOn(Day.key(_today));
+    _loaded = true;
+    _changed();
+  }
+
+  /// Uygulama gece yarısından sonra öne gelirse "bugün" yenilenir.
+  Future<void> refreshIfDayChanged() async {
+    if (!_loaded || Day.same(_today, _clock())) return;
+    await load();
+  }
+
+  /// "taksi 250" gibi bir satırı kaydeder. Tutar bulunamazsa `null`.
+  Future<Expense?> addFromText(String text) async {
+    final parsed = ExpenseParser.parse(text);
+    if (parsed == null) return null;
+    return add(name: parsed.name, amountKurus: parsed.amountKurus);
+  }
+
+  Future<Expense> add({
+    required String name,
+    required int amountKurus,
+    DateTime? at,
+  }) async {
+    final saved = await database.insert(
+      Expense(name: name, amountKurus: amountKurus, spentAt: at ?? _clock()),
+    );
+    await _reloadToday();
+    return saved;
+  }
+
+  Future<void> update(Expense expense) async {
+    await database.update(expense);
+    await _reloadToday();
+  }
+
+  Future<void> delete(Expense expense) async {
+    if (expense.id == null) return;
+    await database.delete(expense.id!);
+    await _reloadToday();
+  }
+
+  /// Silmeyi geri al: aynı ad, tutar ve zamanla yeniden ekler.
+  Future<void> restore(Expense expense) async {
+    await database.insert(
+      Expense(
+        name: expense.name,
+        amountKurus: expense.amountKurus,
+        spentAt: expense.spentAt,
+      ),
+    );
+    await _reloadToday();
+  }
+
+  Future<List<Expense>> expensesOn(DateTime day) =>
+      database.expensesOn(Day.key(day));
+
+  /// Ayın gün → toplam (kuruş) haritası; harcama olmayan günler yoktur.
+  Future<Map<int, int>> monthTotals(int year, int month) async {
+    final first = DateTime(year, month, 1);
+    final last = DateTime(year, month, Day.daysInMonth(year, month));
+    final totals = await database.dailyTotals(Day.key(first), Day.key(last));
+    return {
+      for (final entry in totals.entries)
+        int.parse(entry.key.substring(8, 10)): entry.value,
+    };
+  }
+
+  /// Tüm kayıtlar CSV olarak (tarih;saat;ad;tutar). Excel'in Türkçe
+  /// ayarlarıyla açılsın diye ayraç noktalı virgül, ondalık virgüldür.
+  Future<String> exportCsv() async {
+    final rows = await database.all();
+    final buffer = StringBuffer('Tarih;Saat;Harcama;Tutar (TL)\n');
+    for (final e in rows) {
+      final time =
+          '${e.spentAt.hour.toString().padLeft(2, '0')}:'
+          '${e.spentAt.minute.toString().padLeft(2, '0')}';
+      final lira = e.amountKurus ~/ 100;
+      final kurus = (e.amountKurus % 100).toString().padLeft(2, '0');
+      final name = e.name.replaceAll('"', '""');
+      buffer.writeln('${e.dayKey};$time;"$name";$lira,$kurus');
+    }
+    return buffer.toString();
+  }
+
+  /// Tüm harcamaları bu cihazdan siler.
+  Future<void> deleteAllData() async {
+    await database.wipe();
+    await _reloadToday();
+  }
+
+  Future<void> _reloadToday() async {
+    _today = Day.startOf(_clock());
+    _todayExpenses = await database.expensesOn(Day.key(_today));
+    _changed();
+  }
+
+  void _changed() {
+    _revision++;
+    notifyListeners();
+  }
+}
