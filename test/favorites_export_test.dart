@@ -154,26 +154,40 @@ void main() {
         many,
         regular: _font('Regular'),
         bold: _font('Bold'),
+        logo: File('assets/images/brand/splash_mark.png').readAsBytesSync(),
+        generatedAt: DateTime(2026, 11, 9),
       );
       expect(ascii.decode(bytes.sublist(0, 4)), '%PDF');
     }, timeout: const Timeout(Duration(minutes: 3)));
 
     test('Word: geçerli zip, XML kaçışları ve aylar doğru', () {
-      final archive = ZipDecoder().decodeBytes(ExpenseExport.docx(rows));
+      final archive = ZipDecoder().decodeBytes(
+        ExpenseExport.docx(rows, generatedAt: DateTime(2026, 11, 9)),
+      );
       expect(
         archive.files.map((f) => f.name),
         containsAll([
           '[Content_Types].xml',
           '_rels/.rels',
           'word/document.xml',
+          'word/footer1.xml',
+          'word/_rels/document.xml.rels',
         ]),
       );
       final xml = utf8.decode(
         archive.findFile('word/document.xml')!.content as List<int>,
       );
       expect(xml, contains('Şeker &amp; &lt;çay&gt;'));
-      expect(xml, contains('Ekim 2026 · 85,50 TL'));
-      expect(xml, contains('Kasım 2026 · 1.580 TL'));
+      expect(xml, contains('31 Ekim 2026 – 3 Kasım 2026'));
+      expect(xml, contains('>Ekim 2026<'));
+      expect(xml, contains('>85,50 TL<'));
+      expect(xml, contains('>Kasım 2026<'));
+      expect(xml, contains('>1.580 TL<'));
+      // Toplam 1.665,50 TL, 4 takvim günü → günlük 416,38 TL.
+      expect(xml, contains('>1.665,50 TL<'));
+      expect(xml, contains('>416,38 TL<'));
+      // En çok harcananlarda pay: İlaç 1.250 / 1.665,50 ≈ %75.
+      expect(xml, contains('>%75<'));
     });
   });
 

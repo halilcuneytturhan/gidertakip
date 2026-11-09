@@ -64,9 +64,16 @@ class SettingsScreen extends StatelessWidget {
           await state.allExpenses(),
           regular: await rootBundle.load('assets/fonts/Nunito-Regular.ttf'),
           bold: await rootBundle.load('assets/fonts/Nunito-Bold.ttf'),
+          logo: (await rootBundle.load(
+            'assets/images/brand/splash_mark.png',
+          )).buffer.asUint8List(),
+          generatedAt: state.now,
         );
       case ExportFormat.word:
-        return ExpenseExport.docx(await state.allExpenses());
+        return ExpenseExport.docx(
+          await state.allExpenses(),
+          generatedAt: state.now,
+        );
     }
   }
 
