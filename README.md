@@ -75,15 +75,20 @@ docs/legal/                 GitHub Pages için yasal sayfalar
 
 ## İkon ve açılış ekranı
 
-Yeşil zemin üzerinde beyaz fiş işareti koddan çizilir:
+Bildirim simgesi ve PDF raporundaki beyaz fiş işareti koddan çizilir:
 
 ```bash
 python3 tool/brand/build_brand_assets.py   # Pillow gerekir
 ```
 
-Android eski ikon + uyarlanabilir ikon (temalı ikon dahil), Android 12+
-sistem açılış ekranı, iOS AppIcon ve LaunchScreen ile uygulama içi açılış
-görseli (`assets/images/brand/splash_mark.png`) üretilir.
+Uygulama ikonları ve açılış animasyonu EMU ailesinin ortak dilindedir
+(EMU → yay → Gider). Katmanlar EmuMini'nin açılış katmanlarından üretilir, zemin
+rengi yerel açılışla aynıdır:
+
+```bash
+python tool/brand/build_intro_layers.py ../emumini   # Pillow ve numpy gerekir
+flutter test tool/intro_frames_test.dart             # kareler → build/intro_frames/
+```
 
 ## Gizlilik politikası ve koşullar
 

@@ -18,7 +18,7 @@ Future<void> main() async {
   await reminders.initialize();
   final state = AppState(database: database, reminders: reminders);
 
-  runApp(EmuGiderApp(state: state));
+  runApp(EmuGiderApp(state: state, showIntro: true));
   await state.load();
 }
 

@@ -37,6 +37,7 @@ flutter:
   assets:
     - assets/fonts/OFL.txt
     - assets/images/brand/
+    - assets/images/brand/splash/
     - assets/legal/
 
   fonts:

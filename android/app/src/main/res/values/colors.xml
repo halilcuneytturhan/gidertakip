@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- tool/brand/build_intro_layers.py ile üretilir. -->
 <resources>
-    <!-- AppColors.green ile aynı. -->
-    <color name="ic_launcher_background">#0F6B5C</color>
-    <color name="splash_background">#0F6B5C</color>
+    <color name="ic_launcher_background">#FFF9F1E9</color>
+    <color name="splash_background">#FFF9F1E9</color>
 </resources>

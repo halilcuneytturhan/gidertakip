@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../features/splash/emugider_intro.dart';
+import '../features/splash/logo_arc_path.g.dart';
 import 'app_scope.dart';
 import 'app_state.dart';
 import 'navigation/main_shell.dart';
-import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 class EmuGiderApp extends StatelessWidget {
-  const EmuGiderApp({super.key, required this.state});
+  const EmuGiderApp({super.key, required this.state, this.showIntro = false});
 
   final AppState state;
+
+  /// Açılış logo animasyonu (uygulamada açık; testlerde kapalı).
+  final bool showIntro;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +44,9 @@ class EmuGiderApp extends StatelessWidget {
             ),
           );
         },
-        home: const AppRoot(),
+        home: showIntro
+            ? const EmuGiderIntro(child: AppRoot())
+            : const AppRoot(),
       ),
     );
   }
@@ -61,21 +67,18 @@ class AppRoot extends StatelessWidget {
   }
 }
 
-/// Yerel açılış ekranının (yeşil zemin + fiş işareti) aynısı: veriler
-/// yüklenirken geçişte sıçrama olmaz.
+/// Açılış animasyonunun son karesiyle aynı: veriler yüklenirken geçişte
+/// sıçrama olmaz.
 class _Splash extends StatelessWidget {
   const _Splash();
 
   @override
   Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: AppColors.green,
+    return ColoredBox(
+      color: logoSplashBackground,
       child: Center(
-        child: Image(
-          image: AssetImage('assets/images/brand/splash_mark.png'),
-          width: 96,
-          height: 96,
-          excludeFromSemantics: true,
+        child: EmuGiderLogoMark(
+          width: introLogoWidth(MediaQuery.sizeOf(context)),
         ),
       ),
     );
