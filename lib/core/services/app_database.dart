@@ -10,7 +10,8 @@ class AppDatabase {
   final Database db;
 
   /// 1: ilk sürüm. 2: kullanıcının eklediği sık kullanılanlar.
-  static const int schemaVersion = 2;
+  /// 3: ayarlar (akşam hatırlatıcısı).
+  static const int schemaVersion = 3;
   static const String fileName = 'emugider.db';
 
   static const String _createFavorites = '''
@@ -19,6 +20,12 @@ class AppDatabase {
       name TEXT NOT NULL,
       amount_kurus INTEGER NOT NULL,
       UNIQUE (name, amount_kurus)
+    )''';
+
+  static const String _createSettings = '''
+    CREATE TABLE settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     )''';
 
   /// [factory] ve [path] testlerde bellek içi veritabanı için verilir.
@@ -43,11 +50,13 @@ class AppDatabase {
                 spent_at TEXT NOT NULL
               )''')
             ..execute('CREATE INDEX idx_expenses_day ON expenses(day)')
-            ..execute(_createFavorites);
+            ..execute(_createFavorites)
+            ..execute(_createSettings);
           await batch.commit(noResult: true);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) await db.execute(_createFavorites);
+          if (oldVersion < 3) await db.execute(_createSettings);
         },
       ),
     );
@@ -137,6 +146,23 @@ class AppDatabase {
       'GROUP BY name ORDER BY total DESC, name ASC LIMIT ?',
       [fromKey, toKey, limit],
     );
+  }
+
+  Future<String?> setting(String key) async {
+    final rows = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first['value'] as String;
+  }
+
+  Future<void> setSetting(String key, String value) async {
+    await db.insert('settings', {
+      'key': key,
+      'value': value,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   /// Kullanıcının eklediği sık kullanılanlar, eklenme sırasıyla.

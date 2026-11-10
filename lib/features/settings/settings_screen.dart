@@ -363,6 +363,8 @@ class SettingsScreen extends StatelessWidget {
                     onTap: () => _restore(context),
                   ),
                   const Divider(height: 1, color: AppColors.divider),
+                  const _ReminderTile(),
+                  const Divider(height: 1, color: AppColors.divider),
                   _SettingsTile(
                     icon: Icons.privacy_tip_outlined,
                     title: LegalDocument.privacy.title,
@@ -405,6 +407,71 @@ class SettingsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Akşam hatırlatıcısı: anahtar açar/kapatır, açıkken satıra dokununca saat
+/// seçilir.
+class _ReminderTile extends StatelessWidget {
+  const _ReminderTile();
+
+  Future<void> _toggle(BuildContext context, bool on) async {
+    final state = AppScope.read(context).state;
+    final done = await state.setReminderOn(on);
+    if (!done && context.mounted) {
+      showAppSnackBar(
+        context,
+        'Bildirim izni verilmedi. Telefon ayarlarından izin verebilirsin.',
+      );
+    }
+  }
+
+  Future<void> _pickTime(BuildContext context) async {
+    final state = AppScope.read(context).state;
+    final picked = await showTimePicker(
+      context: context,
+      helpText: 'Hatırlatma saati',
+      initialTime: TimeOfDay(
+        hour: state.reminderMinutes ~/ 60,
+        minute: state.reminderMinutes % 60,
+      ),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      await state.setReminderMinutes(picked.hour * 60 + picked.minute);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context).state;
+    final on = state.reminderOn;
+    final hour = (state.reminderMinutes ~/ 60).toString().padLeft(2, '0');
+    final minute = (state.reminderMinutes % 60).toString().padLeft(2, '0');
+    return ListTile(
+      minTileHeight: 56,
+      contentPadding: const EdgeInsets.only(left: 16, right: 12),
+      leading: const Icon(
+        Icons.notifications_none_rounded,
+        color: AppColors.textPrimary,
+      ),
+      title: const Text('Akşam hatırlatıcısı', style: AppText.subheading),
+      subtitle: Text(
+        on
+            ? 'Saat $hour:$minute, değiştirmek için dokun'
+            : 'O gün harcama yazmadıysan hatırlatır',
+        style: AppText.small,
+      ),
+      trailing: Switch(
+        key: const Key('reminderSwitch'),
+        value: on,
+        onChanged: (value) => _toggle(context, value),
+      ),
+      onTap: on ? () => _pickTime(context) : () => _toggle(context, true),
     );
   }
 }

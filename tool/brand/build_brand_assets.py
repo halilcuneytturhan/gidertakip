@@ -116,6 +116,10 @@ def android() -> None:
         sm = int(96 * scale)
         save(mark(sm, 0.92), *RES, f"drawable-{name}", "splash_mark.png")
 
+        # Bildirim simgesi: 24 dp, beyaz fiş (Android yalnızca saydamlığı kullanır).
+        ni = int(24 * scale)
+        save(mark(ni, 0.92), *RES, f"drawable-{name}", "ic_notification.png")
+
 
 def ios() -> None:
     base = os.path.join(ROOT, "ios", "Runner", "Assets.xcassets")

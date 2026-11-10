@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'app/app.dart';
 import 'app/app_state.dart';
 import 'core/services/app_database.dart';
+import 'core/services/reminder_scheduler.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +14,9 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final database = await AppDatabase.open();
-  final state = AppState(database: database);
+  final reminders = LocalReminderScheduler();
+  await reminders.initialize();
+  final state = AppState(database: database, reminders: reminders);
 
   runApp(EmuGiderApp(state: state));
   await state.load();

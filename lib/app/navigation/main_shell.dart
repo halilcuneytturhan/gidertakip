@@ -5,7 +5,7 @@ import '../../features/history/history_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/today/today_screen.dart';
 import '../app_scope.dart';
-import 'glass_nav_bar.dart';
+import 'app_nav_bar.dart';
 
 enum AppTab {
   today('Özet', Icons.home_outlined, Icons.home_rounded),
@@ -30,10 +30,7 @@ class MainShell extends StatefulWidget {
 
   /// Kaydırılabilir içeriğin alt menünün altında kalmaması için alt boşluk.
   static double bottomInset(BuildContext context) =>
-      GlassNavBar.barHeight +
-      GlassNavBar.bottomGap +
-      MediaQuery.paddingOf(context).bottom +
-      20;
+      AppNavBar.barHeight + MediaQuery.paddingOf(context).bottom + 20;
 
   @override
   State<MainShell> createState() => MainShellState();
@@ -122,10 +119,10 @@ class MainShellState extends State<MainShell> with WidgetsBindingObserver {
                   : const SizedBox.shrink(),
           ],
         ),
-        bottomNavigationBar: GlassNavBar(
+        bottomNavigationBar: AppNavBar(
           items: [
             for (final tab in AppTab.values)
-              GlassNavItem(
+              AppNavItem(
                 label: tab.label,
                 icon: tab.icon,
                 selectedIcon: tab.selectedIcon,

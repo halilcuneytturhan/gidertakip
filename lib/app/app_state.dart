@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../core/models/expense.dart';
 import '../core/services/app_database.dart';
 import '../core/services/expense_backup.dart';
+import '../core/services/reminder_scheduler.dart';
 import '../core/utils/day.dart';
 import '../core/utils/expense_parser.dart';
 
@@ -11,11 +12,33 @@ import '../core/utils/expense_parser.dart';
 /// bilgilendirilir. Her değişiklikte [revision] artar; geçmiş ekranı buna
 /// bakarak kendi sorgusunu yeniler.
 class AppState extends ChangeNotifier {
-  AppState({required this.database, DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+  AppState({
+    required this.database,
+    DateTime Function()? clock,
+    ReminderScheduler reminders = const NoReminders(),
+  }) : _clock = clock ?? DateTime.now,
+       _reminders = reminders;
 
   final AppDatabase database;
   final DateTime Function() _clock;
+  final ReminderScheduler _reminders;
+
+  bool _reminderOn = false;
+  int _reminderMinutes = defaultReminderMinutes;
+
+  /// En son planlanan anlar; aynıysa bildirimler yeniden kurulmaz.
+  List<DateTime>? _scheduledReminders;
+
+  bool get reminderOn => _reminderOn;
+
+  /// Hatırlatma saati, gece yarısından itibaren dakika.
+  int get reminderMinutes => _reminderMinutes;
+
+  static const int defaultReminderMinutes = 21 * 60;
+
+  /// Kaç gün ileriye bildirim planlanır. Uygulama bu kadar süre hiç
+  /// açılmazsa hatırlatmalar kendiliğinden durur.
+  static const int reminderHorizonDays = 14;
 
   bool _loaded = false;
   DateTime _today = DateTime(2000);
@@ -57,6 +80,11 @@ class AppState extends ChangeNotifier {
   static const int maxQuickItems = 4;
 
   Future<void> load() async {
+    _reminderOn = await database.setting('reminder_on') == '1';
+    final minutes = int.tryParse(
+      await database.setting('reminder_minutes') ?? '',
+    );
+    if (minutes != null) _reminderMinutes = minutes;
     await _reloadToday(notify: false);
     _loaded = true;
     _changed();
@@ -248,6 +276,66 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  /// Hatırlatıcıyı açar/kapatır. Açarken bildirim izni verilmezse kapalı
+  /// kalır ve `false` döner.
+  Future<bool> setReminderOn(bool on) async {
+    if (on && !await _reminders.requestPermission()) return false;
+    _reminderOn = on;
+    await database.setSetting('reminder_on', on ? '1' : '0');
+    await _syncReminders();
+    _changed();
+    return true;
+  }
+
+  Future<void> setReminderMinutes(int minutes) async {
+    _reminderMinutes = minutes;
+    await database.setSetting('reminder_minutes', '$minutes');
+    await _syncReminders();
+    _changed();
+  }
+
+  /// Planlanacak anlar: önümüzdeki günlerin hatırlatma saatleri. Geçmiş
+  /// anlar ve [skipToday] ise bugün atlanır.
+  static List<DateTime> reminderTimes({
+    required DateTime now,
+    required int minutes,
+    required bool skipToday,
+    int days = reminderHorizonDays,
+  }) {
+    final times = <DateTime>[];
+    for (var i = skipToday ? 1 : 0; i < days; i++) {
+      final time = DateTime(
+        now.year,
+        now.month,
+        now.day + i,
+        minutes ~/ 60,
+        minutes % 60,
+      );
+      if (time.isAfter(now)) times.add(time);
+    }
+    return times;
+  }
+
+  /// Bildirim hatası harcama yazmayı asla engellemesin.
+  Future<void> _syncReminders() async {
+    final times = _reminderOn
+        ? reminderTimes(
+            now: _clock(),
+            minutes: _reminderMinutes,
+            skipToday: _todayExpenses.isNotEmpty,
+          )
+        : const <DateTime>[];
+    if (_scheduledReminders != null && listEquals(_scheduledReminders, times)) {
+      return;
+    }
+    try {
+      await _reminders.replaceAll(times);
+      _scheduledReminders = times;
+    } catch (error) {
+      debugPrint('Hatırlatıcı planlanamadı: $error');
+    }
+  }
+
   /// Tüm harcamaları bu cihazdan siler.
   Future<void> deleteAllData() async {
     await database.wipe();
@@ -273,6 +361,7 @@ class AppState extends ChangeNotifier {
           amountKurus: r['amount_kurus'] as int,
         ),
     ];
+    await _syncReminders();
     if (notify) _changed();
   }
 

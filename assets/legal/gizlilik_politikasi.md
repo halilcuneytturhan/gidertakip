@@ -35,7 +35,7 @@ Verileri dilediğiniz zaman **Ayarlar → Tüm verileri sil** ile ya da Uygulama
 
 ## 5. İzinler
 
-Uygulama kamera, konum, rehber, fotoğraf, mikrofon veya internet izni istemez.
+Uygulama kamera, konum, rehber, fotoğraf, mikrofon veya internet izni istemez. Akşam hatırlatıcısını açarsanız bildirim izni istenir; bildirimler cihazınızda oluşturulur ve hiçbir yere veri gönderilmez.
 
 ## 6. Çocukların gizliliği
 
