@@ -82,11 +82,12 @@ python3 tool/brand/build_brand_assets.py   # Pillow gerekir
 ```
 
 Uygulama ikonları ve açılış animasyonu EMU ailesinin ortak dilindedir
-(EMU → yay → Gider). Katmanlar EmuMini'nin açılış katmanlarından üretilir, zemin
-rengi yerel açılışla aynıdır:
+(EMU → yay → Gider). Koyu zemin ve ikon düzeni EmuFit / EmuEzan gibidir;
+katmanlar EmuBoykot'un saydam katmanlarından üretilir, zemin rengi yerel
+açılışla aynıdır:
 
 ```bash
-python tool/brand/build_intro_layers.py ../emumini   # Pillow ve numpy gerekir
+python tool/brand/build_intro_layers.py ../emuboykot-main   # Pillow ve numpy gerekir
 flutter test tool/intro_frames_test.dart             # kareler → build/intro_frames/
 ```
 

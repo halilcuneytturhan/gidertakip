@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- tool/brand/build_intro_layers.py ile üretilir. -->
 <resources>
-    <color name="ic_launcher_background">#FFF9F1E9</color>
-    <color name="splash_background">#FFF9F1E9</color>
+    <color name="ic_launcher_background">#FF072A24</color>
+    <color name="splash_background">#FF072A24</color>
 </resources>

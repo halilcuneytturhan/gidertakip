@@ -45,11 +45,12 @@ Widget _layer(String asset) => Image.asset(
 );
 
 /// Açılış ekranının logo genişliği.
-double introLogoWidth(Size screen) => (screen.width * 0.64).clamp(180, 280);
+double introLogoWidth(Size screen) => (screen.width * 0.66).clamp(190, 290);
 
 /// EMU ailesinin açılış dili (EmuFit, EmuMini, EmuEzan, EmuBoykot ile aynı
-/// sıra): önce "EMU" harfleri soldan sağa belirir, ardından yeşil yay
-/// çizilir, en son "Gider" yükselerek gelir. Bitince [child] yumuşak geçişle
+/// sıra): koyu zeminde önce "EMU" harfleri soldan sağa belirir, ardından
+/// yeşil yay çizilir, en son "Gider" yükselerek gelir. Altında EmuEzan'daki
+/// gibi ince bir yükleme çubuğu dolar. Bitince [child] yumuşak geçişle
 /// görünür. Hareket azaltma açıksa logo durağan gösterilir.
 ///
 /// [child] animasyon bitene kadar kurulmaz; veri yükleme bundan etkilenmez.
@@ -133,15 +134,28 @@ class _EmuGiderIntroState extends State<EmuGiderIntro>
                 if (_finishing && mounted) setState(() => _finished = true);
               },
               child: AnnotatedRegion<SystemUiOverlayStyle>(
-                value: SystemUiOverlayStyle.dark.copyWith(
+                value: SystemUiOverlayStyle.light.copyWith(
                   statusBarColor: Colors.transparent,
+                  systemNavigationBarColor: Colors.transparent,
                 ),
                 child: ColoredBox(
                   color: logoSplashBackground,
                   child: Center(
-                    child: _AnimatedLogo(
-                      animation: _controller,
-                      width: introLogoWidth(MediaQuery.sizeOf(context)),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _AnimatedLogo(
+                          animation: _controller,
+                          width: introLogoWidth(MediaQuery.sizeOf(context)),
+                        ),
+                        const SizedBox(height: 28),
+                        _ProgressBar(
+                          animation: _controller,
+                          width:
+                              introLogoWidth(MediaQuery.sizeOf(context)) * 0.5,
+                          done: _finishing,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -238,7 +252,7 @@ class _ArcRevealClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     if (progress >= 1) return Path()..addRect(Offset.zero & size);
     final points = logoArcCenterline;
-    final radius = logoArcStrokeRadius * size.width * 2.3;
+    final radius = logoArcStrokeRadius * size.width * 2.6;
     final path = Path();
     final end = progress * (points.length - 1);
     void dot(Offset p) => path.addOval(
@@ -263,4 +277,52 @@ class _ArcRevealClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(_ArcRevealClipper old) => old.progress != progress;
+}
+
+/// İnce yükleme çubuğu (EmuEzan ile aynı): animasyonla dolar, açılış
+/// biterken tamamlanır.
+class _ProgressBar extends AnimatedWidget {
+  const _ProgressBar({
+    required Animation<double> animation,
+    required this.width,
+    required this.done,
+  }) : super(listenable: animation);
+
+  final double width;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    const height = 3.0;
+    final t = (listenable as Animation<double>).value;
+    final value = done ? 1.0 : Curves.easeOutCubic.transform(t) * 0.92;
+    return Semantics(
+      label: 'Yükleniyor',
+      value: '${(value * 100).round()}%',
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(height),
+          child: ColoredBox(
+            color: Colors.white.withValues(alpha: 0.12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: value.clamp(0.0, 1.0),
+                heightFactor: 1,
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF148C75), Color(0xFF8CE6CF)],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

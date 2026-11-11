@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Açılış ekranı (Android 11 ve öncesi): açılış logosuyla aynı düz zemin. -->
+<!-- Açılış ekranı (Android 11 ve öncesi): açılış ekranıyla aynı koyu zemin. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splash_background" />
 </layer-list>
