@@ -176,13 +176,14 @@ def icon_square(logo: Image.Image, box, fill: float, mode="RGB") -> Image.Image:
 
 
 def write_icons() -> None:
-    names = ("emu", "arc")
+    # İkonda "Gider" yazısı da var (EmuFit, EmuEzan, EmuMakroFiş gibi).
+    names = ("emu", "arc", "gider")
     logo = composite(names)
     box = content_box(names)
-    # EmuFit ile aynı oranlar: eski ikonda logo genişliğin ~%62'si, uyarlanabilir
-    # ön yüzde 108 dp tuvalin ~%42'si (güvenli alanın içinde).
+    # Ailedeki oranlar: eski ikonda EMU genişliğin ~%62'si, uyarlanabilir ön
+    # yüzde 108 dp tuvalin ~%48'i (yazı güvenli alanın içinde).
     legacy = icon_square(logo, box, 0.62)
-    adaptive = icon_square(logo, box, 0.42)
+    adaptive = icon_square(logo, box, 0.48)
 
     # Temalı ikon (Android 13+): logonun tek renkli silüeti.
     layers = [load(os.path.join(OUT, f"{n}.webp")) for n in names]
@@ -193,7 +194,7 @@ def write_icons() -> None:
     mono_logo = Image.fromarray(
         np.dstack([np.full(sil.shape + (3,), 255, np.float32), sil * 255])
         .astype(np.uint8), "RGBA")
-    mono = icon_square(mono_logo, box, 0.42, mode="RGBA")
+    mono = icon_square(mono_logo, box, 0.48, mode="RGBA")
 
     for name, scale in (("mdpi", 1), ("hdpi", 1.5), ("xhdpi", 2),
                         ("xxhdpi", 3), ("xxxhdpi", 4)):
