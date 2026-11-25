@@ -1,0 +1,82 @@
+# Codemagic derleme ayarları (EmuGider).
+#
+# Kurulum (bir kez, Codemagic arayüzünde):
+#  1. Teams → Integrations → Developer Portal: App Store Connect API anahtarını
+#     ekleyin ve adını aşağıdaki `app_store_connect` alanına yazın.
+#  2. App → Environment variables → "legal" grubu:
+#       LEGAL_DEVELOPER_NAME  (gizlilik metnindeki veri sorumlusu adı/unvanı)
+#       LEGAL_CONTACT_EMAIL   (destek e-postası)
+#  3. Android için "android_signing" altında upload keystore'u yükleyin
+#     (Code signing identities → Android keystores, referans: emugider_upload).
+workflows:
+  ios-release:
+    name: iOS → TestFlight / App Store Connect
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: CODEMAGIC_ASC_ANAHTARI   # ← entegrasyon adınız
+    environment:
+      flutter: stable
+      xcode: latest
+      groups:
+        - legal
+      vars:
+        # App Store Connect → Uygulama → Genel → App Information → Apple ID
+        APP_STORE_APP_ID: "0000000000"   # ← kendi Apple ID numaranız
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.emugider.emugider
+    scripts:
+      - name: Paketler
+        script: flutter pub get
+      - name: Analiz ve testler
+        script: |
+          flutter analyze
+          flutter test
+      - name: İmzalama profilleri
+        script: xcode-project use-profiles
+      - name: IPA derle
+        script: |
+          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0) + 1))
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist \
+            --dart-define=LEGAL_DEVELOPER_NAME="$LEGAL_DEVELOPER_NAME" \
+            --dart-define=LEGAL_CONTACT_EMAIL="$LEGAL_CONTACT_EMAIL"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
+
+  android-release:
+    name: Android → Google Play (AAB)
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      groups:
+        - legal
+      android_signing:
+        - emugider_upload
+    scripts:
+      - name: Paketler
+        script: flutter pub get
+      - name: key.properties
+        script: |
+          cat > android/key.properties <<PROPS
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=$CM_KEYSTORE_PATH
+          PROPS
+      - name: AAB derle
+        script: |
+          flutter build appbundle --release \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --dart-define=LEGAL_DEVELOPER_NAME="$LEGAL_DEVELOPER_NAME" \
+            --dart-define=LEGAL_CONTACT_EMAIL="$LEGAL_CONTACT_EMAIL"
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab

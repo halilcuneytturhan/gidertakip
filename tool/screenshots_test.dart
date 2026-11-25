@@ -67,9 +67,9 @@ Future<void> _shot(WidgetTester tester, String name) async {
 
 void main() {
   testWidgets('ekran görüntüleri', (tester) async {
-    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.physicalSize = const Size(1320, 2868);
     tester.view.devicePixelRatio = 3;
-    tester.view.padding = const FakeViewPadding(top: 141, bottom: 102);
+    tester.view.padding = const FakeViewPadding(top: 186, bottom: 102);
     addTearDown(tester.view.reset);
     await tester.runAsync(_loadFonts);
 
