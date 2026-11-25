@@ -1,0 +1,9 @@
+﻿sira,ekran,fayda,baslik_tr,alt_baslik_tr,baslik_en,alt_baslik_en,ornek_veri_notu
+1,ozet_yaziyor,"Harcamayı tek satırla, saniyeler içinde kaydetmek","Yaz, Ekle, bitti",“taksi 250” yazman yeter; ad ve tutar kendiliğinden ayrılır.,"Type it, add it, done",Just type “taxi 250” – the name and amount are split for you.,evet
+2,gecmis_takvim,Günlük harcamayı takvimde bir bakışta görmek,Her gün takvimde,Her günün altında o gün ne kadar harcadığın yazar.,Every day on the calendar,Each day shows how much you spent that day.,evet
+3,gecmis_en_cok,Ay içinde en çok neye harcandığını anlamak,Paran nereye gidiyor?,Ayın toplamı ve en çok harcadığın 5 kalem bir arada.,Where does your money go?,Monthly total and your top 5 expenses in one place.,evet
+4,ozet,Tekrarlanan harcamaları yazmadan eklemek,Sık harcamalar tek dokunuşla,"Kahve, otobüs, simit… Çipe dokun, hemen eklensin.",Frequent expenses in one tap,"Coffee, bus fare, snacks… Tap a chip to add it.",evet
+5,gecmis_gune_ekle,Geçmiş günlerin kayıtlarını tamamlamak,Unuttuğun günü sonra ekle,"Takvimden günü seç, harcamayı o güne yaz.",Add a missed day later,Pick the day on the calendar and log it there.,evet
+6,disa_aktar,Raporu paylaşmak ve verileri yedeklemek,"PDF, Word veya CSV","Ay ay raporunu al, tüm harcamalarını CSV ile yedekle.","PDF, Word or CSV",Get monthly reports and back up everything as CSV.,hayır
+7,ayarlar,Kayıt yazmayı unutmamak,Akşam hatırlatıcısı,O gün hiç yazmadıysan seçtiğin saatte bir kez hatırlatır.,Evening reminder,"If you logged nothing today, one nudge at your chosen time.",hayır
+8,gizlilik,Mali verilerin gizli kalması,"Hesap yok, veriler cihazında",İnternete bağlanmaz; yazdıkların hiçbir sunucuya gönderilmez.,"No account, data stays on device",Works offline; nothing you type is sent to any server.,hayır

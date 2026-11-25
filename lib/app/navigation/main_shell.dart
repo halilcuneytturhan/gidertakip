@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/widgets/max_width_frame.dart';
 import '../../features/history/history_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/today/today_screen.dart';
@@ -98,38 +99,40 @@ class MainShellState extends State<MainShell> with WidgetsBindingObserver {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _handleBack();
       },
-      child: Scaffold(
-        extendBody: true,
-        resizeToAvoidBottomInset: false,
-        body: IndexedStack(
-          index: _current.index,
-          children: [
-            for (final tab in AppTab.values)
-              _visited.contains(tab)
-                  ? TickerMode(
-                      enabled: tab == _current,
-                      child: Navigator(
-                        key: _navigators[tab],
-                        onGenerateRoute: (settings) => MaterialPageRoute(
-                          settings: settings,
-                          builder: (_) => _rootFor(tab),
+      child: MaxWidthFrame(
+        child: Scaffold(
+          extendBody: true,
+          resizeToAvoidBottomInset: false,
+          body: IndexedStack(
+            index: _current.index,
+            children: [
+              for (final tab in AppTab.values)
+                _visited.contains(tab)
+                    ? TickerMode(
+                        enabled: tab == _current,
+                        child: Navigator(
+                          key: _navigators[tab],
+                          onGenerateRoute: (settings) => MaterialPageRoute(
+                            settings: settings,
+                            builder: (_) => _rootFor(tab),
+                          ),
                         ),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-          ],
-        ),
-        bottomNavigationBar: AppNavBar(
-          items: [
-            for (final tab in AppTab.values)
-              AppNavItem(
-                label: tab.label,
-                icon: tab.icon,
-                selectedIcon: tab.selectedIcon,
-              ),
-          ],
-          selectedIndex: _current.index,
-          onSelected: (index) => selectTab(AppTab.values[index]),
+                      )
+                    : const SizedBox.shrink(),
+            ],
+          ),
+          bottomNavigationBar: AppNavBar(
+            items: [
+              for (final tab in AppTab.values)
+                AppNavItem(
+                  label: tab.label,
+                  icon: tab.icon,
+                  selectedIcon: tab.selectedIcon,
+                ),
+            ],
+            selectedIndex: _current.index,
+            onSelected: (index) => selectTab(AppTab.values[index]),
+          ),
         ),
       ),
     );

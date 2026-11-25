@@ -5,13 +5,15 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/max_width_frame.dart';
 import 'legal_config.dart';
 
 /// Yasal belgeyi açar (alt menü görünmez).
 Future<void> openLegalDocument(BuildContext context, LegalDocument document) =>
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
-        builder: (_) => LegalDocumentScreen(document: document),
+        builder: (_) =>
+            MaxWidthFrame(child: LegalDocumentScreen(document: document)),
       ),
     );
 

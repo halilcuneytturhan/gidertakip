@@ -96,6 +96,8 @@ abstract final class AppTheme {
         backgroundColor: AppColors.background,
         showDragHandle: true,
         dragHandleColor: AppColors.border,
+        // iPad'de alt sayfalar da ana sütunla aynı genişlikte kalsın.
+        constraints: BoxConstraints(maxWidth: 600),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
