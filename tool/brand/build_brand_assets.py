@@ -1,28 +1,23 @@
-"""EmuGider marka varlıklarını (ikon ve açılış görseli) koddan üretir.
+"""EmuGider'ın beyaz fiş işaretini koddan üretir.
 
     python3 tool/brand/build_brand_assets.py
 
-İşaret: yeşil zemin üzerinde beyaz bir fiş; satırlar fişten oyulmuştur
-(zemin rengi görünür), alttaki kalın satır "toplam"dır. Tek renkli olduğu
-için Android 13+ temalı ikonda da aynen kullanılır.
+İşaret: beyaz bir fiş; satırlar fişten oyulmuştur, alttaki kalın satır
+"toplam"dır. Uygulama ikonları ve açılış logosu build_intro_layers.py ile
+üretilir.
 
 Üretilenler:
-  * Android: mipmap-*/ic_launcher.png (eski cihazlar), uyarlanabilir ikon
-    (drawable-*/ic_launcher_foreground.png + mipmap-anydpi-v26), açılış
-    işareti drawable-*/splash_mark.png
-  * iOS: AppIcon.appiconset (opak), LaunchImage.imageset
-  * assets/images/brand/splash_mark.png (uygulama içi açılış ekranı)
+  * Android: drawable-*/ic_notification.png (bildirim simgesi)
+  * assets/images/brand/splash_mark.png (PDF raporunun başlığındaki işaret)
 """
 
 from __future__ import annotations
 
-import json
 import os
 
 from PIL import Image, ImageDraw
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-GREEN = (0x0F, 0x6B, 0x5C, 255)
 WHITE = (255, 255, 255, 255)
 SS = 4  # kenar yumuşatma için büyük çizip küçültme oranı
 
@@ -77,17 +72,10 @@ def mark(size: int, height_frac: float) -> Image.Image:
     return img.resize((size, size), Image.LANCZOS)
 
 
-def full_icon(size: int) -> Image.Image:
-    """Opak, kare uygulama ikonu (iOS ve eski Android)."""
-    bg = Image.new("RGBA", (size, size), GREEN)
-    bg.alpha_composite(mark(size, 0.56))
-    return bg
-
-
-def save(img: Image.Image, *parts: str, opaque: bool = False) -> None:
+def save(img: Image.Image, *parts: str) -> None:
     path = os.path.join(ROOT, *parts)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    (img.convert("RGB") if opaque else img).save(path, optimize=True)
+    img.save(path, optimize=True)
 
 
 ANDROID_DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
@@ -96,58 +84,16 @@ RES = ("android", "app", "src", "main", "res")
 
 def android() -> None:
     for name, scale in ANDROID_DENSITIES.items():
-        # Eski (API < 26) ikon: 48 dp, yuvarlatılmış kare.
-        legacy = int(48 * scale)
-        icon = full_icon(legacy * 4)
-        rounded = Image.new("L", icon.size, 0)
-        ImageDraw.Draw(rounded).rounded_rectangle(
-            [0, 0, icon.size[0] - 1, icon.size[1] - 1],
-            radius=icon.size[0] * 0.2,
-            fill=255,
-        )
-        icon.putalpha(rounded)
-        save(icon.resize((legacy, legacy), Image.LANCZOS), *RES, f"mipmap-{name}", "ic_launcher.png")
-
-        # Uyarlanabilir ikon ön yüzü: 108 dp tuval, güvenli alan 66 dp.
-        fg = int(108 * scale)
-        save(mark(fg, 0.46), *RES, f"drawable-{name}", "ic_launcher_foreground.png")
-
-        # Açılış işareti: 96 dp.
-        sm = int(96 * scale)
-        save(mark(sm, 0.92), *RES, f"drawable-{name}", "splash_mark.png")
-
         # Bildirim simgesi: 24 dp, beyaz fiş (Android yalnızca saydamlığı kullanır).
         ni = int(24 * scale)
         save(mark(ni, 0.92), *RES, f"drawable-{name}", "ic_notification.png")
 
 
-def ios() -> None:
-    base = os.path.join(ROOT, "ios", "Runner", "Assets.xcassets")
-    with open(os.path.join(base, "AppIcon.appiconset", "Contents.json")) as f:
-        contents = json.load(f)
-    master = full_icon(1024)
-    for image in contents["images"]:
-        pts = float(image["size"].split("x")[0])
-        px = round(pts * int(image["scale"].rstrip("x")))
-        save(
-            master.resize((px, px), Image.LANCZOS),
-            "ios", "Runner", "Assets.xcassets", "AppIcon.appiconset", image["filename"],
-            opaque=True,
-        )
-    for suffix, scale in (("", 1), ("@2x", 2), ("@3x", 3)):
-        save(
-            mark(96 * scale, 0.92),
-            "ios", "Runner", "Assets.xcassets", "LaunchImage.imageset", f"LaunchImage{suffix}.png",
-        )
-
-
 def flutter_assets() -> None:
     save(mark(288, 0.92), "assets", "images", "brand", "splash_mark.png")
-    save(full_icon(512), "tool", "brand", "icon_preview.png", opaque=True)
 
 
 if __name__ == "__main__":
     android()
-    ios()
     flutter_assets()
     print("ok")

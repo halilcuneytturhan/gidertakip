@@ -36,11 +36,31 @@ class _TodayScreenState extends State<TodayScreen> {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: EdgeInsets.fromLTRB(
               AppDimens.gutter,
-              44,
+              16,
               AppDimens.gutter,
               MainShell.bottomInset(context),
             ),
             children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(
+                      header: true,
+                      child: const Text(
+                        'Harcamalarını takip et',
+                        style: AppText.screenTitle,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Yazdıkların gün gün listelenir ve toplanır.',
+                      style: AppText.small,
+                    ),
+                  ],
+                ),
+              ),
               TotalCard(
                 label: 'Bugün toplam',
                 amount: Money.format(state.todayTotal),
