@@ -126,6 +126,41 @@ keyAlias=upload
 storeFile=/yol/upload-keystore.jks
 ```
 
+## iPad düzeni
+
+Geniş ekranlarda arayüz ortada, en fazla 600 nokta genişliğinde bir sütunda
+durur (`lib/core/widgets/max_width_frame.dart`). Ana iskelet, yasal belgeler
+ve alt sayfalar bu sınıra uyar; telefonda değişiklik yoktur. iPhone yalnız
+dikey çalışır; iPad'de dört yön açıktır (iPad çoklu görev şartı).
+
+## Mağaza görselleri
+
+`store_assets/` altında App Store (iPhone 6.9", 6.5", iPad 13" — 8'er görsel)
+ve Google Play (8 telefon görseli, öne çıkan görsel, 512 simge) görselleri
+ile TR + EN metinler bulunur. Üretim ve ayrıntılar: `store_assets/README.md`.
+
+## iOS derleme ve TestFlight (Codemagic)
+
+Mac gerekmez; `codemagic.yaml` içindeki `ios-testflight` akışı derler,
+imzalar ve TestFlight'a yükler. EmuFit / EmuEzan ile aynı düzendir.
+
+- Paket kimliği: `com.emugider.emugider` (App Store Connect'te bu kimlikle
+  "EmuGider: Gider Takibi" olarak kayıtlı; değiştirilemez).
+- Codemagic kişisel hesap: **Settings > Integrations** altında ortak
+  "EmuFit ASC" anahtarı; **Settings > codemagic.yaml settings > Code signing
+  identities** altında mevcut Apple Distribution sertifikası ve
+  "EmuGider App Store" profili. Yeni sertifika oluşturulmaz (Apple 409 verir).
+- Build numarası Codemagic sayacından (`$BUILD_NUMBER`), sürüm adı
+  `pubspec.yaml`'dan gelir. Derlemeden önce testler çalışır.
+- `ios/Runner/PrivacyInfo.xcprivacy` gizlilik manifesti ve Info.plist'te
+  `ITSAppUsesNonExemptEncryption = false` vardır (şifreleme sorusu çıkmaz).
+- `submit_to_testflight` dış beta incelemesine de gönderir; TestFlight'ta
+  "Test Information" boşsa Codemagic derlemeyi sarı ("post-processing
+  failed") gösterir ama yükleme başarılıdır. Kendi telefonunda denemek için
+  TestFlight > Internal Testing'de uygulamaya özel grup yeterlidir.
+
+İlk TestFlight derlemesi: 1.0.0 (3), 26 Kasım 2026, iç test grubunda.
+
 ## Henüz yapılmayanlar
 
 - Ana ekran widget'ı
