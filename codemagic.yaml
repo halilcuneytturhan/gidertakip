@@ -1,0 +1,55 @@
+# EmuGider iOS derlemesi (Codemagic).
+# Kodu Codemagic'in Mac'inde derler, imzalar ve TestFlight'a yükler.
+# Elle başlatılır: Codemagic > gidertakip > Start new build > ios-testflight.
+#
+# İmzalama EmuFit ve EmuEzan ile aynı yoldan yapılır: Apple hesabında zaten
+# bir dağıtım sertifikası var ve yenisine izin verilmiyor (409). Bu sertifika
+# Codemagic > Settings > Code signing identities içinde kayıtlı; EmuGider için
+# yalnızca com.emugider.emugider'a ait "App Store" provisioning profili eklenir.
+#
+# Codemagic'te bir kez yapılacak ayarlar:
+#  1. Settings > Integrations > Developer Portal: App Store Connect API
+#     anahtarı "EmuFit ASC" adıyla kayıtlı (EMU uygulamalarının ortak anahtarı).
+#  2. Apple Developer > Identifiers: com.emugider.emugider kayıtlı olmalı;
+#     App Store Connect'te bu paket kimliğiyle "EmuGider" uygulaması açılmış olmalı.
+#  3. Settings > Code signing identities > iOS provisioning profiles:
+#     com.emugider.emugider için App Store profili (Fetch profiles ile Apple'dan).
+#
+# Sürüm adı pubspec.yaml'dan (version: 1.0.0+...) okunur. Build numarası
+# Codemagic'in her derlemede bir artırdığı $BUILD_NUMBER'dır; App Store aynı
+# numarayı iki kez kabul etmez.
+# Gizli anahtarlar bu dosyaya yazılmaz; hepsi Codemagic'te durur.
+
+workflows:
+  ios-testflight:
+    name: iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: EmuFit ASC
+    environment:
+      flutter: 3.47.8
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.emugider.emugider
+    scripts:
+      - name: Paketler
+        script: flutter pub get --enforce-lockfile
+      - name: Testler
+        script: flutter test
+      - name: Xcode projesine profilleri uygula
+        script: xcode-project use-profiles
+      - name: IPA derle
+        script: |
+          flutter build ipa --release \
+            --build-number="$BUILD_NUMBER" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
